@@ -1,0 +1,113 @@
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '操作'
+        required: true
+        default: '更新仓库'
+        type: choice
+        options:
+          # - 远程
+          # - 压测
+          # - 停止所有
+          - 删除仓库
+          - 更新仓库
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+run-name: '${{ inputs.action }}'
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      ids: ${{ steps.set-matrix.outputs.ids }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-matrix
+        run: |
+          count=$(jq 'length' data.json)
+          ids=$(jq -c -n --argjson n "$count" '[range(1; $n+1)]')
+          echo "ids=$ids" >> $GITHUB_OUTPUT
+
+  concurrent-jobs:
+    needs: prepare-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      # max-parallel: 5
+      fail-fast: false
+      matrix:
+        job_id: ${{ fromJson(needs.prepare-matrix.outputs.ids) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 设置环境变量
+        run: |
+          JOB_ID=${{ matrix.job_id }}
+          JOB_ID=$((JOB_ID - 1))
+          ACCOUNTS=$(cat data.json)
+
+          LEN=$(echo $ACCOUNTS | jq 'length')
+          if [ "$JOB_ID" -ge "$LEN" ]; then
+            echo "JOB_ID 超出范围，直接退出"
+            exit 1
+          fi
+
+          USERNAME=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][0]")
+          PASSWORD=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][1]")
+          SECRET=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][2]")
+          
+          echo "GITHUB_USERNAME=$USERNAME" >> $GITHUB_ENV
+          echo "GITHUB_PASSWORD=$PASSWORD" >> $GITHUB_ENV
+          echo "GITHUB_SECRET=$SECRET" >> $GITHUB_ENV
+
+          status=$(curl -o /dev/null -s -w "%{http_code}" https://github.com/$USERNAME)
+          if [ "$status" -eq 200 ]; then
+              echo "请求成功"
+          else
+              echo "请求失败，状态码：$status"
+              exit 1
+          fi
+
+          yarn
+          yarn build
+
+      - name: 远程
+        if: ${{ inputs.action == '远程' }}
+        env:
+          REMOTE: true
+        run: | 
+          node dist/app.js
+
+      - name: 压测
+        if: ${{ inputs.action == '压测' }}
+        env:
+          STRESS_TEST: true
+        run: | 
+          node dist/app.js
+
+      - name: 停止所有
+        if: ${{ inputs.action == '停止所有' }}
+        env:
+          Stop_All_PIPELINES: true
+        run: | 
+          node dist/app.js
+
+      - name: 删除仓库
+        if: ${{ inputs.action == '删除仓库' }}
+        env:
+          DELETE_REPO: true
+          UPDATE_REPO: true
+        run: | 
+          node dist/app.js
+
+      - name: 更新仓库
+        if: ${{ inputs.action == '更新仓库' }}
+        env:
+          UPDATE_REPO: true
+        run: | 
+          node dist/app.js

@@ -1,0 +1,68 @@
+# docker login -u oby90060@zslsz.com -p Abc@112233
+services:
+  plaza:
+    build:
+      context: ..
+    image: oby90060/server:dev
+    # image: oby90060/server:prod
+    restart: unless-stopped
+    environment:
+      TZ: "Asia/Shanghai"
+    ports:
+      - "10000:10000"
+
+  admin:
+    image: oby90060/admin
+    restart: unless-stopped
+    environment:
+      TZ: "Asia/Shanghai"
+    ports:
+      - "8000:80"
+
+  # admin-dev:
+  #   image: oby90060/admin
+  #   restart: unless-stopped
+  #   environment:
+  #     TZ: "Asia/Shanghai"
+  #   ports:
+  #     - "8001:80"
+
+  vue-admin:
+    image: oby90060/vue-admin
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+
+  # vue-admin-dev:
+  #   image: oby90060/vue-admin:dev
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8081:80"
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      TZ: "Asia/Shanghai"
+      MYSQL_ROOT_PASSWORD: 8836741E-00F0-4A83-92EE-8234D2425833
+      MYSQL_DATABASE: gamedb
+    volumes:
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./sql:/docker-entrypoint-initdb.d:ro
+      - my_volume:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb_buffer_pool_size=1G
+      - --join_buffer_size=512M
+      - --sort_buffer_size=128M
+      - --read_rnd_buffer_size=128M
+      - --log-bin-trust-function-creators=1
+      - --lower_case_table_names=1
+      - --innodb_log_file_size=512M
+    ports:
+      - "3306:3306"
+
+volumes:
+  my_volume:
+    name: gamedb

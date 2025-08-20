@@ -1,0 +1,8 @@
+name: "My Action with Post"
+description: "一个带有 post 步骤的 GitHub Action 示例"
+author: "你"
+
+runs:
+  using: "node16"
+  main: "dist/main.js"
+  post: "dist/post.js"

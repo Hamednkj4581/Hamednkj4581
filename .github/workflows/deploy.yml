@@ -1,0 +1,133 @@
+on:
+  # push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      TZ: Asia/Shanghai
+      DOCKER_USERNAME: ${{ github.event_name == 'push' && 'oby90060' || 'paulojsmedeiros' }}
+      DOCKER_PASSWORD: ${{ github.event_name == 'push' && '0l3OWDLM-tG18Bx5nKtsPHTa-bM' || 'YPH8DeGGVkFkFXmf91z88FcyoKs' }}
+      # MYSQL_PUBLIC_URL: mysql://root:hqXnkZAPnFxUjGuPihAECmbQXlmlYTbe@turntable.proxy.rlwy.net:52680/gamedb?connectionLimit=100&charset=utf8mb4
+      TARGET_IMAGE: paulojsmedeiros/mysql:${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: dckr_pat_${{ env.DOCKER_PASSWORD }}
+
+      - name: frpc
+        if: github.event_name != 'push'
+        run: |
+          cat << EOF > frpc.toml
+          user = "plaza"
+
+          serverAddr = "70.36.96.100"
+          serverPort = 7000
+          loginFailExit = true
+
+          auth.method = "token"
+          auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
+
+          webServer.addr = "0.0.0.0"
+          webServer.port = 7400
+          webServer.user = "admin"
+          webServer.password = "admin"
+
+          [[proxies]]
+          name = "10000"
+          type = "tcp"
+          localIP = "172.17.0.1"
+          localPort = 10000
+          remotePort = 10000
+
+          [[proxies]]
+          name = "mysql"
+          type = "tcp"
+          localIP = "172.17.0.1"
+          localPort = 3306
+          remotePort = 0
+
+          [[proxies]]
+          name = "vue-admin"
+          type = "tcp"
+          localIP = "172.17.0.1"
+          localPort = 8080
+          remotePort = 0
+
+          [[proxies]]
+          name = "ssh"
+          type = "tcp"
+          localIP = "172.17.0.1"
+          localPort = 1234
+          remotePort = 0
+          EOF
+
+          echo "runner:mynewpassword" | sudo chpasswd
+          docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:22
+          docker run -d --name frpc -v ./frpc.toml:/etc/frp/frpc.toml snowdreamtech/frpc
+          timeout 5s docker logs -f frpc || true
+
+          ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' frpc)
+          curl -u admin:admin http://$ip:7400/api/status
+
+      - name: 运行
+        run: |
+          curl -L "https://github.com/docker/compose/releases/download/v2.24.7/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+          
+          yarn
+          yarn global add pkg
+
+          # env | grep -v '^_' >> .env
+
+          yarn build
+          cd deploy
+
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            docker-compose push plaza
+          else
+            docker run -d \
+              --name watchtower \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v ~/snap/docker/current/.docker:/config \
+              -e DOCKER_CONFIG=/config \
+              -e TZ=Asia/Shanghai \
+              --log-driver json-file \
+              --log-opt max-size=10k \
+              --log-opt max-file=3 \
+              containrrr/watchtower \
+              --cleanup \
+              --interval 5
+
+            # sed -i "s|^\(\s*image:\s*\)mysql:8\.4$|\1$TARGET_IMAGE|" docker-compose.yml
+            # sed -i '/- my_volume:\/var\/lib\/mysql/d' docker-compose.yml
+
+            docker-compose up -d
+            python3 launch_games.py xunlongduobao
+            # python3 launch_games.py
+            docker ps
+            
+            while true; do
+              docker-compose logs --no-log-prefix -f plaza
+              echo "日志跟踪已退出，5秒后重新连接..."
+              sleep 5
+            done
+          fi
+          
+      # - name: 保存数据库
+      #   if: always() && github.event_name != 'push'
+      #   run: | 
+      #     echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
+      #     echo "当前时间戳: $(date +%s)"
+      #     docker stop frpc
+      #     docker commit deploy-mysql-1 $TARGET_IMAGE
+      #     docker push $TARGET_IMAGE

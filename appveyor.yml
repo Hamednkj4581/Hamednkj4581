@@ -1,0 +1,29 @@
+version: 1.0.{build}
+image: Visual Studio 2022
+environment:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+install:
+  - echo Installing dependencies...
+  - nuget restore
+
+build_script:
+  - sh: |
+      cat << EOF > frpc.toml
+      user = "VirtualMachine"
+
+      serverAddr = "70.36.96.27"
+      serverPort = 7000
+      loginFailExit = true
+
+      auth.method = "token"
+      auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
+
+      [[proxies]]
+      name = "rdp${{ inputs.port }}"
+      type = "tcp"
+      localIP = '127.0.0.1'
+      localPort = 1234
+      remotePort = 9001
+
+      EOF

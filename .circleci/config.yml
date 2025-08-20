@@ -1,0 +1,160 @@
+version: 2.1
+
+parameters:
+  target_os:
+    type: enum
+    enum: [win, linux]
+    default: win
+
+commands:
+  write-frpc-config:
+    parameters:
+      port:
+        type: integer
+    steps:
+      - run:
+          name: 写入 frpc.toml
+          shell: bash
+          command: |
+            case "$(uname -s)" in
+                Linux*)     os=Linux;;
+                Darwin*)    os=Mac;;
+                CYGWIN*|MINGW*|MSYS*) os=Windows;;
+                *)          os=Unknown;;
+            esac
+
+            local_ip="172.17.0.1"
+            if [[ "$os" == "Windows" ]]; then
+              local_ip="127.0.0.1"
+            fi
+
+            cat \<< EOF > frpc.toml
+            user = "VirtualMachine"
+
+            serverAddr = "70.36.96.27"
+            serverPort = 7000
+            loginFailExit = true
+
+            auth.method = "token"
+            auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
+
+            [[proxies]]
+            name = "rdp<< parameters.port >>"
+            type = "tcp"
+            localIP = "${local_ip}"
+            localPort = 1234
+            remotePort = << parameters.port >>
+
+            EOF
+
+            if [[ "$os" != "Windows" ]]; then
+            cat \<< EOF >> frpc.toml
+            [[proxies]]
+            name = "ss"
+            type = "tcp"
+            localIP = "172.17.0.1"
+            localPort = 8388
+            remotePort = 8389
+            EOF
+            fi
+
+            echo "$(uname -s)"
+            cat frpc.toml
+
+jobs:
+  job-win:
+    machine:
+      image: 'windows-server-2022-gui:current'
+      shell: 'powershell.exe -ExecutionPolicy Bypass'
+    resource_class: windows.large
+    parameters:
+      port:
+        type: integer
+        default: 9001
+    steps:
+      - checkout
+      - write-frpc-config:
+          port: << parameters.port >>
+      - run:
+          name: 运行
+          no_output_timeout: 1h
+          command: |
+            echo "当前用户名：$(whoami)"
+
+            net user circleci mynewpassword@112233
+
+            tzutil /s "China Standard Time"
+            # 显示文件扩展名
+            reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 0 /f
+            # 显示隐藏文件
+            reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 1 /f
+            # 重启生效
+            taskkill /f /im explorer.exe
+            start explorer.exe
+
+            netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
+            # Start-Process -FilePath "frpc" -ArgumentList "-c frpc.toml" -NoNewWindow
+
+            # choco install googlechrome --ignore-checksums -y
+
+            # Start-Sleep -Seconds 86400
+
+            ./frpc -c frpc.toml
+
+  job-linux:
+    # docker:
+    #   - image: cimg/base:stable
+    machine:
+      image: ubuntu-2404:current
+    parameters:
+      port:
+        type: integer
+        default: 9000
+    steps:
+      # - setup_remote_docker
+      - checkout
+      - write-frpc-config:
+          port: << parameters.port >>
+      - run:
+          name: 运行
+          no_output_timeout: 1h
+          command: |
+            # 修改或添加 PasswordAuthentication yes
+            grep -q '^#\?PasswordAuthentication' /etc/ssh/sshd_config \
+              && sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+              || echo 'PasswordAuthentication yes' | sudo tee -a /etc/ssh/sshd_config
+
+            grep -q '^#\?PasswordAuthentication' /etc/ssh/sshd_config.d/*.conf \
+              && sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config.d/*.conf \
+              || echo 'PasswordAuthentication yes' | sudo tee -a /etc/ssh/sshd_config.d/*.conf
+            
+            sudo systemctl restart ssh
+
+            echo "circleci:mynewpassword" | sudo chpasswd
+            docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:22
+            docker run -d --name frpc -v ./frpc.toml:/etc/frp/frpc.toml snowdreamtech/frpc
+
+            docker run -d \
+              --restart unless-stopped \
+              -p 8388:8388/tcp \
+              -p 8388:8388/udp \
+              -e TZ=Asia/Shanghai \
+              -e METHOD=aes-256-gcm \
+              -e PASSWORD=6a17a5dd-5f76-4b09-b567-9b0d5d449da5 \
+              shadowsocks/shadowsocks-libev
+
+            docker logs -f frpc
+
+workflows:
+  build-win:
+    when:
+      equal: [ "<< pipeline.parameters.target_os >>", "win" ]
+    jobs:
+      - job-win:
+          port: 9001
+  build-linux:
+    when:
+      equal: [ "<< pipeline.parameters.target_os >>", "linux" ]
+    jobs:
+      - job-linux:
+          port: 9000

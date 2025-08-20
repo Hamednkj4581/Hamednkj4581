@@ -1,0 +1,79 @@
+name: 统计最大并发数
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: '系统'
+        required: true
+        default: 'ubuntu-latest'
+        type: choice
+        options:
+          - ubuntu-latest
+          - self-hosted
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  concurrent-jobs:
+    runs-on: ${{ inputs.os }}
+    strategy:
+      matrix:
+        job_id: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+    steps:
+      - name: 记录时间戳
+        shell: bash
+        run: |
+          rm -rf timestamps
+          mkdir -p timestamps
+          echo "$(date +%s)" > timestamps/start_${{ matrix.job_id }}.txt
+          sleep 10  # 你的实际任务可以放这里
+          echo "$(date +%s)" > timestamps/end_${{ matrix.job_id }}.txt
+
+      - name: 上传 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: timestamps-${{ matrix.job_id }}
+          path: timestamps/
+
+  concurrency-report:
+    needs: concurrent-jobs
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载所有 artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: all_timestamps
+
+      - name: 统计最大并发数
+        run: |
+          python3 <<'EOF'
+          import os
+          import glob
+
+          times = []
+          # 遍历所有 start/end 文件
+          for f in glob.glob('all_timestamps/**/start_*.txt', recursive=True):
+              job_id = os.path.basename(f).split('_')[1].split('.')[0]
+              with open(f) as sf, open(f.replace('start_', 'end_')) as ef:
+                  start = int(sf.read().strip())
+                  end = int(ef.read().strip())
+                  times.append((start, 1))
+                  times.append((end, -1))
+          # 按时间排序，累加并发数
+          times.sort()
+          concurrent = 0
+          max_concurrent = 0
+          for t, delta in times:
+              concurrent += delta
+              if concurrent > max_concurrent:
+                  max_concurrent = concurrent
+          # 输出到 Job Summary
+          with open(os.environ['GITHUB_STEP_SUMMARY'], "a") as summary:
+              summary.write(f"## 最大并发数: {max_concurrent}\n")
+          EOF

@@ -1,0 +1,101 @@
+on:
+  push:
+    paths:
+      - '.github/workflows/download.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      ids: ${{ steps.set-matrix.outputs.ids }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-matrix
+        run: |
+          count=60
+          ids=$(jq -c -n --argjson n "$count" '[range(1; $n+1)]')
+          echo "ids=$ids" >> $GITHUB_OUTPUT
+
+  concurrent-jobs:
+    needs: prepare-matrix
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      max-parallel: 20
+      fail-fast: false
+      matrix:
+        job_id: ${{ fromJson(needs.prepare-matrix.outputs.ids) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: mirllan2025/express
+
+      - id: run-speed
+        name: 下载并统计速度
+        run: |
+          yarn
+          timeout 120s node index.js --count 20
+          # 下载文件并获取速度（字节/秒）
+          # url=https://apt.mobileanjian.com/debs/old/com.cyjh.mobileanjian_1.8.1_default_iphoneos-arm.deb
+          url=https://down-syouwan-com-1301430143.cos.ap-shanghai.myqcloud.com/myt.ipa
+          speed=$(curl -O $url -w "%{speed_download}\n" | tail -1)
+          # 转换为 MB/s，保留两位小数
+          speed_mb=$(awk "BEGIN {printf \"%.2f\", $speed/1024/1024}")
+          echo "$speed_mb" > speed.txt
+
+      - name: 上传下载速度结果
+        uses: actions/upload-artifact@v4
+        with:
+          name: speed-${{ matrix.job_id }}
+          path: speed.txt
+
+  summarize:
+    needs: concurrent-jobs
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 下载所有下载速度文件
+        uses: actions/download-artifact@v4
+        with:
+          path: speeds
+
+      - name: 汇总分析下载速度
+        run: |
+          # 合并所有下载速度
+          cat speeds/speed-*/speed.txt > all_speeds.txt
+
+          # 统计分析
+          sum=0
+          max=0
+          min=10000
+          count=0
+          speeds_list=""
+          while read s; do
+            sum=$(awk "BEGIN{print $sum+$s}")
+            if (( $(awk "BEGIN{print ($s>$max)}") )); then max=$s; fi
+            if (( $(awk "BEGIN{print ($s<$min)}") )); then min=$s; fi
+            count=$((count+1))
+            speeds_list="${speeds_list}${count}|${s}\n"
+          done < all_speeds.txt
+          avg=$(awk "BEGIN{print $sum/$count}")
+
+          # 输出到 workflow summary
+          {
+            echo "### 下载速度统计"
+            echo ""
+            echo "|编号|速度 (MB/s)|"
+            echo "|---|---|"
+            echo -e "$speeds_list"
+            echo ""
+            echo "**平均速度：$avg MB/s**"
+            echo "**最高速度：$max MB/s**"
+            echo "**最低速度：$min MB/s**"
+          } >> $GITHUB_STEP_SUMMARY
