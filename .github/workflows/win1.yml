@@ -105,7 +105,7 @@ jobs:
 
           # https://community.chocolatey.org/packages
 
-          choco install sublimetext4
+          # choco install sublimetext4
           
           # echo "::group::vscode"
           # choco install vscode
@@ -181,6 +181,7 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
 
 
 
