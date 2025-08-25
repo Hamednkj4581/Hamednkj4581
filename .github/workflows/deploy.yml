@@ -122,6 +122,10 @@ jobs:
               sleep 5
             done
           fi
+
+      - if: always()
+        run: |
+          docker stop frpc
           
       # - name: 保存数据库
       #   if: always() && github.event_name != 'push'
