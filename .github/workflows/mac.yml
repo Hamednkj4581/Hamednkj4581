@@ -42,7 +42,7 @@ jobs:
                 if [[ "$STATUS" == "finished" ]]; then
                   LOSS=$(echo "$RESPONSE" | jq -r '.results[0].result.stats.loss')
                   if [[ "$LOSS" -lt 100 ]]; then
-                    echo "- $IP (丢包率: ${LOSS}%)" >> $SUMMARY_FILE
+                    echo "- $IP (丢包率: ${LOSS}%)" >> $GITHUB_STEP_SUMMARY
                   fi
                   break
                 fi
