@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "## Ping 成功的 IP" >> $GITHUB_STEP_SUMMARY
 
-          for i in {1..254}; do 
+          for i in {1..250}; do 
             (
               IP="70.36.96.$i"
 
