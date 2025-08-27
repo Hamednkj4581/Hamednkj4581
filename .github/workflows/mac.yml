@@ -2,6 +2,12 @@ name: 测试
 
 on:
   push:
+  workflow_dispatch:
+    inputs:
+      subnet:
+        description: '要测试的子网 (例如: 70.36.96)'
+        required: true
+        default: '70.36.96'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,7 +29,7 @@ jobs:
 
           for i in {1..250}; do 
             (
-              IP="70.36.96.$i"
+              IP="${{ inputs.subnet }}.$i"
 
               # 创建测量
               ID=$(curl -s -X POST "https://api.globalping.io/v1/measurements" \
