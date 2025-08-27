@@ -55,3 +55,8 @@ jobs:
 
           # 等待所有后台任务完成
           wait
+
+          # 统计成功 IP 数量
+          SUCCESS_COUNT=$(grep -c '^-' $GITHUB_STEP_SUMMARY || true)
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 总成功数: $SUCCESS_COUNT" >> $GITHUB_STEP_SUMMARY
