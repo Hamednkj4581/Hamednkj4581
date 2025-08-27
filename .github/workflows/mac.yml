@@ -7,8 +7,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# run-name: '${{ inputs.os }} ${{ inputs.port }}'
-
 env:
   TZ: Asia/Shanghai
 
@@ -44,7 +42,7 @@ jobs:
                 if [[ "$STATUS" == "finished" ]]; then
                   LOSS=$(echo "$RESPONSE" | jq -r '.results[0].result.stats.loss')
                   if [[ "$LOSS" -lt 100 ]]; then
-                    echo "- $IP (丢包率: ${LOSS}%)" >> $GITHUB_STEP_SUMMARY
+                    echo "$IP $LOSS" >> results.txt
                   fi
                   break
                 fi
@@ -53,10 +51,17 @@ jobs:
             ) &
           done
 
-          # 等待所有后台任务完成
           wait
 
-          # 统计成功 IP 数量
-          SUCCESS_COUNT=$(grep -c '^-' $GITHUB_STEP_SUMMARY || true)
+          if [[ -f results.txt ]]; then
+            # 按 IP 最后一段排序
+            sort -t. -k4,4n results.txt | while read IP LOSS; do
+              echo "- $IP (丢包率: ${LOSS}%)" >> $GITHUB_STEP_SUMMARY
+            done
+            SUCCESS_COUNT=$(wc -l < results.txt)
+          else
+            SUCCESS_COUNT=0
+          fi
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 总成功数: $SUCCESS_COUNT" >> $GITHUB_STEP_SUMMARY
