@@ -46,7 +46,7 @@ jobs:
           auth.method = "token"
           auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
 
-          webServer.addr = "0.0.0.0"
+          webServer.addr = "127.0.0.1"
           webServer.port = 7400
           webServer.user = "admin"
           webServer.password = "admin"
