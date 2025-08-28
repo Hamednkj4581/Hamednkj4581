@@ -60,8 +60,8 @@ jobs:
 
           [[proxies]]
           name = "httptoolkit"
-          type = "http"
-          localIP = "127.0.0.1"
+          type = "tcp"
+          localIP = "0.0.0.0"
           localPort = 8000
           remotePort = 0
 
