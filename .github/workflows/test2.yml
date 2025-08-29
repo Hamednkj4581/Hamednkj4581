@@ -19,7 +19,7 @@ jobs:
 
       - name: 测试
         run: |
-          GITHUB_TOKEN=${{secrets.GITHUB_TOKEN}}
+          GITHUB_TOKEN='ghp_'d5OdUJFyYYBI4C1IM8sCLydIGNmt6r1fSQGO
           REPO_NAME=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/user/repos?sort=created&direction=desc&per_page=1" \
             | jq -r '.[0].full_name')
