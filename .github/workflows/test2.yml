@@ -44,7 +44,7 @@ jobs:
 
           curl -X PUT \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Authorization: token $GH_TOKEN" \
             https://api.github.com/repos/$MY_REPO/actions/permissions \
             -d '{"enabled":true,"allowed_actions":"all"}'
 
