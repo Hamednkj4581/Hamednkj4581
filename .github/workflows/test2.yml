@@ -18,17 +18,31 @@ jobs:
       # - uses: actions/checkout@v4
 
       - name: 测试
+        env:
+          GH_TOKEN: ghp_${{'q7kvPczAPsdVaKwwzQoZPJAlL02MLh2PCKTC'}}
         run: |
-          GITHUB_TOKEN='ghp_'d5OdUJFyYYBI4C1IM8sCLydIGNmt6r1fSQGO
-          GH_TOKEN=$GITHUB_TOKEN
-          
-          REPO_NAME=$(gh api 'user/repos?sort=created&direction=desc&per_page=1' --jq '.[0].full_name')
-          echo REPO_NAME=$REPO_NAME
+          # REPO_NAME=$(gh api 'user/repos?sort=created&direction=desc&per_page=1' --jq '.[0].full_name')
+          # echo REPO_NAME=$REPO_NAME
 
-          gh workflow run test.yml \
-            --repo "$REPO_NAME" \
-            --ref main \
-            --field subnet=70.36.100
+          USERNAME=$(gh api user --jq .login)
+          MY_REPO="$USERNAME/express"
+
+          if gh repo view $MY_REPO &>/dev/null; then
+            echo "仓库 $MY_REPO 已存在，正在删除..."
+            gh repo delete $MY_REPO --yes
+          fi
+
+          gh repo fork mirllan2025/express --clone
+
+          cd express
+          ls
+
+          # gh workflow run test.yml \
+          #   --repo "$REPO_NAME" \
+          #   --ref main \
+          #   --field subnet=70.36.100
+
+
 
           # REPO_NAME=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
           #   "https://api.github.com/user/repos?sort=created&direction=desc&per_page=1" \
