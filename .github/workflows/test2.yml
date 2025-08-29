@@ -34,6 +34,12 @@ jobs:
 
           gh repo fork mirllan2025/express --clone
 
+          gh api \
+            -X PUT \
+            /repos/$OWNER/$REPO/actions/permissions \
+            -F enabled=true \
+            -F allowed_actions=all
+
           cd express
           ls
 
