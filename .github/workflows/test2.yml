@@ -20,6 +20,8 @@ jobs:
       - name: 测试
         run: |
           GITHUB_TOKEN='ghp_'d5OdUJFyYYBI4C1IM8sCLydIGNmt6r1fSQGO
+          GH_TOKEN=$GITHUB_TOKEN
+          
           REPO_NAME=$(gh api 'user/repos?sort=created&direction=desc&per_page=1' --jq '.[0].full_name')
           echo REPO_NAME=$REPO_NAME
 
