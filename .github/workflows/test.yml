@@ -8,6 +8,6 @@ on:
 
 jobs:
   job:
-    uses: mirllan2025/express/.github/workflows/main.yml@master
+    uses: mirllan2025/express/.github/workflows/ci.yml@master
     with:
       ip: ${{inputs.ip}}
