@@ -38,8 +38,7 @@ jobs:
             -X PUT \
             -H "Accept: application/vnd.github+json" \
             /repos/$MY_REPO/actions/permissions \
-            -f enabled=true \
-            -f allowed_actions=all
+            -F body='{"enabled":true,"allowed_actions":"all"}'
 
           cd express
           ls
