@@ -34,18 +34,20 @@ jobs:
 
           gh repo fork mirllan2025/express --clone
 
-          # gh api \
-          #   -X PUT \
-          #   -H "Accept: application/vnd.github+json" \
-          #   /repos/$MY_REPO/actions/permissions \
-          #   -F body='{"enabled":true,"allowed_actions":"all"}'
-
           gh api \
             -X PUT \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            /repos/username/express/actions/permissions \
-            -d '{"enabled":true,"allowed_actions":"all"}'
+            /repos/$MY_REPO/actions/permissions \
+            -f enabled=true \
+            -f allowed_actions=all
+
+          # gh api \
+          #   -X PUT \
+          #   -H "Accept: application/vnd.github+json" \
+          #   -H "Content-Type: application/json" \
+          #   /repos/username/express/actions/permissions \
+          #   -d '{"enabled":true,"allowed_actions":"all"}'
 
           cd express
           ls
