@@ -36,7 +36,7 @@ jobs:
 
           gh api \
             -X PUT \
-            /repos/$OWNER/$REPO/actions/permissions \
+            /repos/$MY_REPO/actions/permissions \
             -F enabled=true \
             -F allowed_actions=all
 
