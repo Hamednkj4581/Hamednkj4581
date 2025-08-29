@@ -34,16 +34,12 @@ jobs:
 
           gh repo fork mirllan2025/express --clone
 
-          # gh api \
-          #   -X PUT \
-          #   /repos/$MY_REPO/actions/permissions \
-          #   -F enabled=true \
-          #   -F allowed_actions=all
-
-          curl -X PUT \
-            -H "Authorization: token ${{secrets.GITHUB_TOKEN}}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/$MY_REPO/actions/enable
+          gh api \
+            -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            /repos/$MY_REPO/actions/permissions \
+            -f enabled=true \
+            -f allowed_actions=all
 
           cd express
           ls
