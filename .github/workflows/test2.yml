@@ -19,7 +19,9 @@ jobs:
 
       - name: 测试
         run: |
-          REPO_NAME=$(gh api 'user/repos?sort=created&direction=desc&per_page=1' --jq '.[0].full_name')
+          REPO_NAME=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/user/repos?sort=created&direction=desc&per_page=1" \
+            | jq -r '.[0].full_name')
           echo REPO_NAME=$REPO_NAME
 
           curl -X POST \
