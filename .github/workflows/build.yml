@@ -50,6 +50,8 @@ jobs:
         job_id: ${{ fromJson(needs.prepare-matrix.outputs.ids) }}
 
     steps:
+      - uses: actions/checkout@v4
+      
       - name: 登录
         run: |
           JOB_ID=${{ matrix.job_id }}
