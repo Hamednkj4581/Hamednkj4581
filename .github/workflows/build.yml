@@ -186,10 +186,9 @@ jobs:
 
           REPO_FULL_NAME=$(gh api 'user/repos?sort=created&direction=desc&per_page=1' --jq '.[0].full_name')
           echo REPO_FULL_NAME=$REPO_FULL_NAME
-          REPO_NAME=$(basename "$REPO_FULL_NAME")
           
           gh workflow run ci.yml \
-            --repo $REPO_NAME \
+            --repo $REPO_FULL_NAME \
             --ref main \
             --field ip=${{ inputs.ip }}
 
