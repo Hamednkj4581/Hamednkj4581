@@ -1,0 +1,54 @@
+name: Check GitHub Users
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/check.yml'
+      - 'data.json'
+
+jobs:
+  check-users:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filter valid GitHub users
+        run: |
+          tmpfile=$(mktemp)
+          > "$tmpfile"
+          original_count=$(jq 'length' data.json)
+          echo "原始项数: $original_count"
+          valid_count=0
+
+          jq -c '.[]' data.json | while read -r item; do
+            username=$(echo "$item" | jq -r '.[0]')
+            echo "Checking user: $username"
+            status=$(curl -s -o /dev/null -w "%{http_code}" "https://github.com/${username}")
+            if [ "$status" = "200" ]; then
+              echo "$item" >> "$tmpfile"
+              valid_count=$((valid_count+1))
+            elif [ "$status" = "404" ]; then
+              echo "User $username does not exist"
+            else
+              echo "Error: Unexpected status code $status for user $username"
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          filtered_count=$(wc -l < "$tmpfile" | xargs)
+          echo "有效项数: $filtered_count"
+
+          if [ "$filtered_count" -gt 0 ]; then
+            jq -s '.' "$tmpfile" > data.json
+          else
+            echo '[]' > data.json
+          fi
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 筛选有效 GitHub 用户
+          file_pattern: data.json
