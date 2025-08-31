@@ -133,7 +133,7 @@ jobs:
             job:
               uses: mirllan2025/express/.github/workflows/ci.yml@master
               with:
-              ip: ${{'${{inputs.ip}}'}}
+                ip: ${{'${{inputs.ip}}'}}
           EOF
 
           echo "=== 获取原仓库最后一次提交的信息 ==="
