@@ -64,14 +64,8 @@ jobs:
             exit 1
           fi
 
-          USERNAME=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][0]")
-          PASSWORD=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][1]")
-          SECRET=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][2]")
           TOKEN=ghp_$(echo $ACCOUNTS | jq -r ".[$JOB_ID][3]")
           
-          echo "GITHUB_USERNAME=$USERNAME" >> $GITHUB_ENV
-          echo "GITHUB_PASSWORD=$PASSWORD" >> $GITHUB_ENV
-          echo "GITHUB_SECRET=$SECRET" >> $GITHUB_ENV
           echo "TOKEN=$TOKEN" >> $GITHUB_ENV
           
           echo $TOKEN | gh auth login --with-token
