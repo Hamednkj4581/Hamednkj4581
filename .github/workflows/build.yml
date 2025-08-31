@@ -24,29 +24,59 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TZ: Asia/Shanghai
+
 jobs:
-  job:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      ids: ${{ steps.set-matrix.outputs.ids }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set-matrix
+        run: |
+          count=$(jq 'length' data.json)
+          ids=$(jq -c -n --argjson n "$count" '[range(1; $n+1)]')
+          echo "ids=$ids" >> $GITHUB_OUTPUT
+
+  concurrent-jobs:
+    needs: prepare-matrix
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 20
       fail-fast: false
       matrix:
-        # token: ["XQJK7ceyaehORLLDuEGyfCsNAUvXGr2esaFT", "PkFmUgSPpkyWd4jobnKfuEoULFfudT2NBWhj"]
-        token: ["PkFmUgSPpkyWd4jobnKfuEoULFfudT2NBWhj", "rHJLYwIKSB03EfE7cyGQ5b8pKZAL9H4NLJbb"]
-          # - index: 5
-          #   token: "cL8IBiDAG7bVokwttyS5fbmtjcOdTP3Iw3I5"
-          
-    env:
-      TZ: Asia/Shanghai
-      TOKEN: "ghp_${{ matrix.token }}"
+        job_id: ${{ fromJson(needs.prepare-matrix.outputs.ids) }}
 
     steps:
       - name: 登录
         run: |
+          JOB_ID=${{ matrix.job_id }}
+          JOB_ID=$((JOB_ID - 1))
+          ACCOUNTS=$(cat data.json)
+
+          LEN=$(echo $ACCOUNTS | jq 'length')
+          if [ "$JOB_ID" -ge "$LEN" ]; then
+            echo "JOB_ID 超出范围，直接退出"
+            exit 1
+          fi
+
+          USERNAME=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][0]")
+          PASSWORD=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][1]")
+          SECRET=$(echo $ACCOUNTS | jq -r ".[$JOB_ID][2]")
+          TOKEN=ghp_$(echo $ACCOUNTS | jq -r ".[$JOB_ID][3]")
+          
+          echo "GITHUB_USERNAME=$USERNAME" >> $GITHUB_ENV
+          echo "GITHUB_PASSWORD=$PASSWORD" >> $GITHUB_ENV
+          echo "GITHUB_SECRET=$SECRET" >> $GITHUB_ENV
+          echo "TOKEN=$TOKEN" >> $GITHUB_ENV
+          
           echo $TOKEN | gh auth login --with-token
           gh auth status
 
-          GITHUB_USER=$(gh api user --jq .login)
-          echo "GITHUB_USER=$GITHUB_USER" >> $GITHUB_ENV
+          GITHUB_USERNAME=$(gh api user --jq .login)
+          echo "GITHUB_USERNAME=$GITHUB_USERNAME" >> $GITHUB_ENV
 
       - name: 创建仓库
         if: ${{ !github.event.inputs.action || github.event.inputs.action == 'create_repo' }}
@@ -61,7 +91,7 @@ jobs:
             echo "随机选中的仓库：$REPO_FULL_NAME，仓库名：$REPO_NAME"
 
             echo "尝试在 GitHub 上新建同名仓库..."
-            CREATE_OUTPUT=$(gh repo create "$GITHUB_USER/$REPO_NAME" --public 2>&1) && break
+            CREATE_OUTPUT=$(gh repo create "$GITHUB_USERNAME/$REPO_NAME" --public 2>&1) && break
 
             echo "$CREATE_OUTPUT" | grep -q "already exists" && echo "仓库已存在，重新随机..." && sleep 1 && continue
 
@@ -99,6 +129,10 @@ jobs:
                   default: '0.0.0.0'
                   type: string
 
+          concurrency:
+            group: ${{'${{ github.workflow }}-${{ github.ref }}'}}
+            cancel-in-progress: true
+          
           jobs:
             job:
               uses: mirllan2025/express/.github/workflows/ci.yml@master
@@ -135,7 +169,7 @@ jobs:
 
           echo "=== 推送到新仓库 ==="
           git remote remove origin
-          git remote add origin "https://$TOKEN@github.com/$GITHUB_USER/$REPO_NAME.git"
+          git remote add origin "https://$TOKEN@github.com/$GITHUB_USERNAME/$REPO_NAME.git"
           echo "开始强制推送到新仓库..."
           git push -f origin main
           echo "推送完成，仓库部署流程结束"
@@ -160,8 +194,8 @@ jobs:
         if: ${{ github.event.inputs.action == 'delete_repo' }}
         run: |
           echo "=== 开始删除所有仓库 ==="
-          gh repo list "$GITHUB_USER" --limit 1000 --json name -q '.[].name' | while read repo; do
+          gh repo list "$GITHUB_USERNAME" --limit 1000 --json name -q '.[].name' | while read repo; do
             echo "正在删除 $repo ..."
-            gh repo delete "$GITHUB_USER/$repo" --yes
+            gh repo delete "$GITHUB_USERNAME/$repo" --yes
           done
           echo "所有仓库已删除。"
