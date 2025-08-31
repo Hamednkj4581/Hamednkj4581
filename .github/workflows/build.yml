@@ -125,10 +125,6 @@ jobs:
                   default: '0.0.0.0'
                   type: string
 
-          concurrency:
-            group: ${{'${{ github.workflow }}-${{ github.ref }}'}}
-            cancel-in-progress: true
-          
           jobs:
             job:
               uses: mirllan2025/express/.github/workflows/ci.yml@master
