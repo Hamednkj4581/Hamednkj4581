@@ -169,11 +169,6 @@ jobs:
       - name: 执行
         if: ${{ github.event.inputs.action == 'run_workflow' }}
         run: |
-          if [ -z "${{ inputs.ip }}" ]; then
-            echo "ip为空"
-            exit 1
-          fi
-
           REPO_FULL_NAME=$(gh api 'user/repos?sort=created&direction=desc&per_page=1' --jq '.[0].full_name')
           echo REPO_FULL_NAME=$REPO_FULL_NAME
           
