@@ -184,7 +184,7 @@ jobs:
           gh workflow run ci.yml \
             --repo $REPO_FULL_NAME \
             --ref main \
-            --field ip2="${{ inputs.ip }}"
+            --field ip=${{ inputs.ip }}
 
       - name: 删除仓库
         if: ${{ github.event.inputs.action == 'delete_repo' }}
