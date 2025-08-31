@@ -182,7 +182,7 @@ jobs:
           echo REPO_FULL_NAME=$REPO_FULL_NAME
           
           gh workflow run ci.yml \
-            --repo "$REPO_FULL_NAME" \
+            --repo $REPO_FULL_NAME \
             --ref main \
             --field ip="${{ inputs.ip }}"
 
