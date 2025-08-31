@@ -7,6 +7,10 @@ on:
       - '.github/workflows/check.yml'
       - 'data.json'
 
+permissions:
+  contents: write
+  issues: write
+
 jobs:
   check-users:
     runs-on: ubuntu-latest
