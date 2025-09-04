@@ -29,6 +29,9 @@ jobs:
       - name: 记录时间戳
         shell: bash
         run: |
+          curl ipinfo.io
+          docker ps
+          docker images
           rm -rf timestamps
           mkdir -p timestamps
           echo "$(date +%s)" > timestamps/start_${{ matrix.job_id }}.txt
