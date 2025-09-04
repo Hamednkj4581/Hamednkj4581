@@ -30,8 +30,8 @@ jobs:
         shell: bash
         run: |
           curl ipinfo.io
-          docker ps
-          docker images
+          sudo docker ps
+          sudo docker images
           rm -rf timestamps
           mkdir -p timestamps
           echo "$(date +%s)" > timestamps/start_${{ matrix.job_id }}.txt
@@ -43,6 +43,10 @@ jobs:
         with:
           name: timestamps-${{ matrix.job_id }}
           path: timestamps/
+
+      - name: 停止
+        run: |
+          sudo docker kill ci-runner
 
   concurrency-report:
     needs: concurrent-jobs
