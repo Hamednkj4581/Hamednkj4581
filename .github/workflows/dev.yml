@@ -27,4 +27,4 @@ jobs:
 
       - name: 停止
         run: |
-          sudo docker kill ci-runner
+          sudo nohup docker stop ci-runner
