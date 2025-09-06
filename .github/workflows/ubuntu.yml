@@ -39,7 +39,7 @@ jobs:
           cat << EOF > frpc.toml
           user = "VirtualMachine"
 
-          serverAddr = "70.36.96.100"
+          serverAddr = "165.154.244.104"
           serverPort = 7000
           loginFailExit = true
 
@@ -187,5 +187,6 @@ jobs:
       #     sleep 30s
       #     echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
       #     echo "当前时间戳: $(date +%s)"
+
 
 
