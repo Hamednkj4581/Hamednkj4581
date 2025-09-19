@@ -39,7 +39,7 @@ jobs:
           cat << EOF > frpc.toml
           user = "VirtualMachine"
 
-          serverAddr = "43.135.40.161"
+          serverAddr = "165.154.244.104"
           serverPort = 7000
           loginFailExit = true
 
@@ -96,8 +96,8 @@ jobs:
           Start-Process -FilePath "frpc" -ArgumentList "-c frpc.toml" -NoNewWindow
 
           cd C:/Users/runneradmin/Desktop
-          curl -L -O https://cdn.netsarang.net/10aefc08/Xshell-8.0.0084p.exe
-          curl -L -O https://cdn.netsarang.net/10aefc08/Xftp-8.0.0084p.exe
+          curl -L -O https://cdn.netsarang.net/5e7d1e09/Xshell-8.0.0084p.exe
+          curl -L -O https://cdn.netsarang.net/5e7d1e09/Xftp-8.0.0084p.exe
           # curl -L -O https://gosspublic.alicdn.com/ossbrowser/1.18.0/oss-browser-win32-x64.zip?spm=a2c4g.11186623.0.0.a371450fzLHNZ2&file=oss-browser-win32-x64.zip
           # curl -L -O https://cdn.mysql.com//Downloads/MySQLGUITools/mysql-workbench-community-8.0.42-winx64.msi
 
@@ -179,3 +179,5 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
+
