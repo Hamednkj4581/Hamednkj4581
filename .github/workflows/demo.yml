@@ -48,7 +48,9 @@ jobs:
           remotePort = 5901
           EOF
 
+          echo "ipconfig getifaddr en0"
           ipconfig getifaddr en0
+          echo "ipconfig getifaddr en1"
           ipconfig getifaddr en1
           echo "mynewpassword" | sudo passwd runner
 
