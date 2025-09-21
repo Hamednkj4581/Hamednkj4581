@@ -50,6 +50,8 @@ jobs:
           remotePort = 5901
           EOF
 
+          cat frpc.toml
+
           ipconfig getifaddr en0
           echo "mynewpassword" | sudo passwd runner
 
