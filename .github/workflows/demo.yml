@@ -18,8 +18,6 @@ jobs:
       - name: Write to frpc.toml
         shell: bash
         run: |
-          IP=$(ipconfig getifaddr en0)
-
           cat << EOF > frpc.toml
           user = "mac-mini"
 
@@ -38,14 +36,14 @@ jobs:
           [[proxies]]
           name = "vnc"
           type = "tcp"
-          localIP = "$IP"
+          localIP = "127.0.0.1"
           localPort = 5900
           remotePort = 5900
 
           [[proxies]]
           name = "ssh"
           type = "tcp"
-          localIP = "$IP"
+          localIP = "127.0.0.1"
           localPort = 22
           remotePort = 5901
           EOF
@@ -55,7 +53,7 @@ jobs:
           ipconfig getifaddr en0
           echo "mynewpassword" | sudo passwd runner
 
-          dscl . -read /Users/runner
+          # dscl . -read /Users/runner
           
           # brew install socat
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
