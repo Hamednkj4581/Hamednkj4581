@@ -41,7 +41,6 @@ jobs:
           remotePort = 5900
           EOF
 
-          # echo "runner:mynewpassword" | sudo chpasswd
           echo "mynewpassword" | sudo passwd runner
 
           dscl . -read /Users/runner
