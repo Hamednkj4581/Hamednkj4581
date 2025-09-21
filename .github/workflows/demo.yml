@@ -51,7 +51,8 @@ jobs:
           cat frpc.toml
 
           ipconfig getifaddr en0
-          echo "mynewpassword" | sudo passwd runner
+          # echo "mynewpassword" | sudo passwd runner
+          sudo dscl . -passwd /Users/runner mynewpassword
 
           # dscl . -read /Users/runner
           
