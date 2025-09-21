@@ -2,8 +2,6 @@ name: macOS Screenshot
 
 on:
   push:
-    branches:
-      - main
 
 jobs:
   build:
@@ -22,3 +20,45 @@ jobs:
         with:
           name: screenshot
           path: /tmp/screenshot.png
+
+      - name: Write to frpc.toml
+        shell: bash
+        run: |
+          cat << EOF > frpc.toml
+          user = "mac-mini"
+
+          serverAddr = "70.36.96.100"
+          serverPort = 7000
+          loginFailExit = true
+
+          auth.method = "token"
+          auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
+
+          webServer.addr = "0.0.0.0"
+          webServer.port = 7400
+          webServer.user = "admin"
+          webServer.password = "admin"
+
+          [[proxies]]
+          name = "ssh"
+          type = "tcp"
+          localIP = "127.0.0.1"
+          localPort = 1234
+          remotePort = 0
+          EOF
+
+          whoami
+          # echo "runner:mynewpassword" | sudo chpasswd
+          
+          brew install socat
+          socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22
+          ./frpc -c frpc.toml &
+          sleep 5
+
+          sudo systemsetup -getremotelogin
+
+          curl -u admin:admin http://$ip:7400/127.0.0.1/status
+
+      - name: Capture Screenshot
+        run: |
+          screencapture -x /tmp/screenshot.png
