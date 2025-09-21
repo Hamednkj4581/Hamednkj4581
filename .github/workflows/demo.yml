@@ -11,16 +11,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Capture Screenshot
-        run: |
-          screencapture -x /tmp/screenshot.png
-
-      - name: Upload Screenshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshot
-          path: /tmp/screenshot.png
-
       - name: Write to frpc.toml
         shell: bash
         run: |
@@ -62,3 +52,13 @@ jobs:
       - name: Capture Screenshot
         run: |
           screencapture -x /tmp/screenshot.png
+
+      - name: Upload Screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot
+          path: /tmp/screenshot.png
+
+      - name: 等待
+        run: |
+          sleep 3600
