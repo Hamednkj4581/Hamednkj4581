@@ -27,7 +27,7 @@ jobs:
           cat << EOF > frpc.toml
           user = "mac-mini"
 
-          serverAddr = "70.36.96.100"
+          serverAddr = "165.154.244.104"
           serverPort = 7000
           loginFailExit = true
 
