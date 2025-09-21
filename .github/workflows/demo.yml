@@ -55,6 +55,9 @@ jobs:
           curl ipinfo.io
           curl -u admin:admin http://127.0.0.1:7400/api/status
 
+          sleep 5
+          curl -u admin:admin http://127.0.0.1:7400/api/status
+
       - name: Capture Screenshot
         run: |
           screencapture -x /tmp/screenshot.png
