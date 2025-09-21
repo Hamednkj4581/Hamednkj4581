@@ -39,6 +39,13 @@ jobs:
           localIP = "127.0.0.1"
           localPort = 5900
           remotePort = 5900
+
+          [[proxies]]
+          name = "ssh"
+          type = "tcp"
+          localIP = "127.0.0.1"
+          localPort = 22
+          remotePort = 5901
           EOF
 
           echo "mynewpassword" | sudo passwd runner
