@@ -44,14 +44,14 @@ jobs:
           type = "tcp"
           localIP = "127.0.0.1"
           localPort = 1234
-          remotePort = 9004
+          remotePort = 5900
           EOF
 
           # echo "runner:mynewpassword" | sudo chpasswd
           echo "mynewpassword" | sudo passwd runner
           
           brew install socat
-          socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
+          socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
           ./frpc -c frpc.toml &
           sleep 5
 
