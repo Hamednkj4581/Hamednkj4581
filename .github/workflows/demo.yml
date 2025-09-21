@@ -1,0 +1,24 @@
+name: macOS Screenshot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Capture Screenshot
+        run: |
+          screencapture -x /tmp/screenshot.png
+
+      - name: Upload Screenshot
+        uses: actions/upload-artifact@v3
+        with:
+          name: screenshot
+          path: /tmp/screenshot.png
