@@ -37,7 +37,7 @@ jobs:
           name = "vnc"
           type = "tcp"
           localIP = "127.0.0.1"
-          localPort = 1234
+          localPort = 5900
           remotePort = 5900
           EOF
 
@@ -46,8 +46,8 @@ jobs:
 
           dscl . -read /Users/runner
           
-          brew install socat
-          socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
+          # brew install socat
+          # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
           ./frpc -c frpc.toml &
           sleep 5
 
