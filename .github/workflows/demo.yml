@@ -48,6 +48,8 @@ jobs:
           remotePort = 5901
           EOF
 
+          ipconfig getifaddr en0
+          ipconfig getifaddr en1
           echo "mynewpassword" | sudo passwd runner
 
           dscl . -read /Users/runner
