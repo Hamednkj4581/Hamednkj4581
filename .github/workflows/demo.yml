@@ -18,7 +18,7 @@ jobs:
           screencapture -x /tmp/screenshot.png
 
       - name: Upload Screenshot
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: screenshot
           path: /tmp/screenshot.png
