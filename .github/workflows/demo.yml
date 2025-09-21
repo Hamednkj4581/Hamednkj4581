@@ -34,7 +34,7 @@ jobs:
           webServer.password = "admin"
 
           [[proxies]]
-          name = "ssh"
+          name = "vnc"
           type = "tcp"
           localIP = "127.0.0.1"
           localPort = 1234
@@ -51,6 +51,7 @@ jobs:
 
           sudo systemsetup -getremotelogin
 
+          curl ipinfo.io
           curl -u admin:admin http://127.0.0.1:7400/api/status
 
       - name: Capture Screenshot
