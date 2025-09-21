@@ -47,7 +47,7 @@ jobs:
 
           sudo systemsetup -getremotelogin
 
-          curl -u admin:admin http://127.0.0.1:7400/status
+          curl -u admin:admin http://127.0.0.1:7400/api/status
 
       - name: Capture Screenshot
         run: |
