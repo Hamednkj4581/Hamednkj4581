@@ -99,7 +99,7 @@ jobs:
           cliclick c:1140,645
 
           sleep 2
-          cliclick c:627,254
+          cliclick c:627,154
 
           sleep 1
           screencapture -C -x /tmp/screenshot_1.png
@@ -122,7 +122,7 @@ jobs:
           cliclick c:1017,447
           screencapture -C -x /tmp/screenshot_11.png
           sleep 2
-          cliclick c:560,365
+          cliclick c:960,443
 
       - name: 截屏
         if: always()
@@ -138,5 +138,5 @@ jobs:
 
       - name: 等待
         run: |
-          sleep 1
-          # sleep 3600
+          # sleep 1
+          sleep 3600
