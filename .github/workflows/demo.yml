@@ -94,10 +94,13 @@ jobs:
           sleep 1
           cliclick c:1140,245
 
+          # Done
+          sleep 1
+          cliclick c:1140,245
+
           sleep 1
           screencapture -C -x /tmp/screenshot_1.png
           echo 开启成功
-          exit 0
 
           # brew install socat
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
@@ -106,14 +109,14 @@ jobs:
           ./frpc -c frpc.toml &
           sleep 5
 
-          curl ipinfo.io
-          curl -u admin:admin http://127.0.0.1:7400/api/status
+          # curl -u admin:admin http://127.0.0.1:7400/api/status
 
           # sudo chown -R newuser /opt/homebrew
           # sudo chmod -R u+w /opt/homebrew
 
           echo 等待授权
           sleep 30
+          screencapture -C -x /tmp/screenshot_13.png
           cliclick c:510,365
           sleep 2
           cliclick c:560,365
