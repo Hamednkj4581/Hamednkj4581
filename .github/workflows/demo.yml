@@ -85,6 +85,12 @@ jobs:
           sleep 2
           cliclick m:60,75
           cliclick c:60,75
+
+          sleep 1
+          cliclick m:250,120
+          cliclick c:250,120
+          cliclick t:"screen"
+
           cliclick p
 
       - name: Capture Screenshot
