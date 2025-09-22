@@ -10,7 +10,8 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-10
+    # runs-on: macos-latest
 
     steps:
       - name: Checkout code
@@ -19,6 +20,9 @@ jobs:
       - name: Write to frpc.toml
         shell: bash
         run: |
+          uname -m
+          exit 0
+          
           brew install displayplacer
           
           displays=$(displayplacer list)
@@ -44,7 +48,7 @@ jobs:
           auth.method = "token"
           auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
 
-          webServer.addr = "0.0.0.0"
+          webServer.addr = "127.0.0.1"
           webServer.port = 7400
           webServer.user = "admin"
           webServer.password = "admin"
@@ -55,28 +59,11 @@ jobs:
           localIP = "127.0.0.1"
           localPort = 5900
           remotePort = 5900
-
-          # [[proxies]]
-          # name = "ssh"
-          # type = "tcp"
-          # localIP = "127.0.0.1"
-          # localPort = 1234
-          # remotePort = 5901
           EOF
 
           sudo sysadminctl -addUser newuser -password password
           sudo dscl . -append /Groups/admin GroupMembership newuser
           dscl . -read /Groups/admin GroupMembership
-          # dscl . -list /Users | grep -v '^_'
-
-          ipconfig getifaddr en0
-
-          # cd /Users/runner/Desktop
-          # touch 111.txt
-          # ls
-          # cd -
-
-          sudo systemsetup -getremotelogin
 
           brew install cliclick
           cliclick p
@@ -116,6 +103,7 @@ jobs:
 
           echo 等待授权
           sleep 30
+          echo Share Screen
           cliclick c:1017,447
           echo Allow
           sleep 2
