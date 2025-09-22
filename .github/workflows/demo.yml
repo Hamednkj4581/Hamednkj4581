@@ -89,11 +89,11 @@ jobs:
           cliclick t:"Screen Sharing"
 
           sleep 3
-          screencapture -C -x /tmp/screenshot_0.png
-          exit 0
-          cliclick c:250,270
+          cliclick c:680,345
 
           sleep 2
+          screencapture -C -x /tmp/screenshot_0.png
+          exit 0
           cliclick c:700,170
 
           sleep 2
@@ -133,5 +133,5 @@ jobs:
 
       - name: 等待
         run: |
-          # sleep 1
-          sleep 3600
+          sleep 1
+          # sleep 3600
