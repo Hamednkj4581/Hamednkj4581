@@ -61,9 +61,8 @@ jobs:
           touch 111.txt
           ls
           cd -
-          ls
 
-          sudo launchctl list | grep -i "com.apple.screensharing"
+          # sudo launchctl list | grep -i "com.apple.screensharing"
           sudo systemsetup -getremotelogin
 
           brew install socat
