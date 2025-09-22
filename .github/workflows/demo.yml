@@ -57,8 +57,11 @@ jobs:
 
           ipconfig getifaddr en0
 
+          cd Desktop
+          touch 111.txt
+
           sudo systemsetup -getremotelogin
-          sudo systemsetup -setremoteappleevents on
+          # sudo systemsetup -setremoteappleevents on
           sudo systemsetup -getremoteappleevents
 
           brew install socat
