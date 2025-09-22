@@ -57,9 +57,11 @@ jobs:
 
           ipconfig getifaddr en0
 
+          cd /Users/runner/Desktop
+          touch 111.txt
           ls
-          # cd Desktop
-          # touch 111.txt
+          cd -
+          ls
 
           sudo systemsetup -getremotelogin
           # sudo systemsetup -setremoteappleevents on
