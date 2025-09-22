@@ -58,6 +58,8 @@ jobs:
           ipconfig getifaddr en0
 
           sudo systemsetup -getremotelogin
+          sudo systemsetup -setremoteappleevents on
+          sudo systemsetup -getremoteappleevents
 
           brew install socat
           socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
