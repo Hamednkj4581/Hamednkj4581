@@ -80,7 +80,8 @@ jobs:
 
           brew install cliclick
           cliclick p
-          cliclick m:100,200
+          cliclick m:20,10
+          cliclick c:20,10
           cliclick p
 
       - name: Capture Screenshot
