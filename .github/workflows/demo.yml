@@ -79,6 +79,9 @@ jobs:
           # sudo chmod -R u+w /opt/homebrew
 
           brew install cliclick
+          cliclick p
+          cliclick m:100,200
+          cliclick p
 
       - name: Capture Screenshot
         run: |
