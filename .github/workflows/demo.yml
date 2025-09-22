@@ -91,7 +91,8 @@ jobs:
           sleep 1
           cliclick c:250,120
           sleep 1
-          cliclick t:"screensharing"
+          # cliclick t:"screensharing"
+          cliclick t:"share"
 
           cliclick p
 
