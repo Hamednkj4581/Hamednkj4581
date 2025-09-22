@@ -19,23 +19,6 @@ jobs:
       - name: Write to frpc.toml
         shell: bash
         run: |
-          brew install cliclick
-          cliclick p
-          cliclick c:20,10
-          sleep 2
-          cliclick c:60,75
-          sleep 2
-          cliclick c:250,120
-          sleep 1
-          cliclick t:"Sharing"
-
-          sleep 2
-          cliclick c:250,340
-
-          sleep 2
-          cliclick c:700,170
-          echo "开启成功"
-
           cat << EOF > frpc.toml
           user = "mac-mini"
 
@@ -58,15 +41,13 @@ jobs:
           localPort = 5900
           remotePort = 5900
 
-          [[proxies]]
-          name = "ssh"
-          type = "tcp"
-          localIP = "127.0.0.1"
-          localPort = 1234
-          remotePort = 5901
+          # [[proxies]]
+          # name = "ssh"
+          # type = "tcp"
+          # localIP = "127.0.0.1"
+          # localPort = 1234
+          # remotePort = 5901
           EOF
-
-          cat frpc.toml
 
           sudo sysadminctl -addUser newuser -password password
           sudo dscl . -append /Groups/admin GroupMembership newuser
@@ -75,16 +56,32 @@ jobs:
 
           ipconfig getifaddr en0
 
-          cd /Users/runner/Desktop
-          touch 111.txt
-          ls
-          cd -
+          # cd /Users/runner/Desktop
+          # touch 111.txt
+          # ls
+          # cd -
 
-          # sudo launchctl list | grep -i "com.apple.screensharing"
           sudo systemsetup -getremotelogin
 
-          brew install socat
-          socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
+                    brew install cliclick
+          cliclick p
+          cliclick c:20,10
+          sleep 2
+          cliclick c:60,75
+          sleep 2
+          cliclick c:250,120
+          sleep 1
+          cliclick t:"Sharing"
+
+          sleep 2
+          cliclick c:250,340
+
+          sleep 2
+          cliclick c:700,170
+          echo "开启成功"
+
+          # brew install socat
+          # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
           
           ./frpc -c frpc.toml &
@@ -99,6 +96,8 @@ jobs:
           echo 等待授权
           sleep 20
           cliclick c:510,365
+          sleep 2
+          cliclick c:560,365
 
           cliclick p
 
