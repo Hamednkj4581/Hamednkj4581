@@ -71,9 +71,10 @@ jobs:
           sleep 2
           cliclick c:250,120
           sleep 1
-          cliclick t:"Sharing"
+          cliclick t:"Screen Sharing"
 
-          sleep 5
+          sleep 2
+          exit 0
           cliclick c:250,340
 
           sleep 2
@@ -113,5 +114,5 @@ jobs:
 
       - name: 等待
         run: |
-          # sleep 1
-          sleep 3600
+          sleep 1
+          # sleep 3600
