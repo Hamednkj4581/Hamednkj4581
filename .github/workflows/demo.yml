@@ -81,7 +81,7 @@ jobs:
           cliclick c:700,170
 
           sleep 2
-          screencapture -C -x /screenshot/1.png
+          screencapture -C -x /tmp/screenshot_1.png
           echo 开启成功
 
           # brew install socat
@@ -107,13 +107,13 @@ jobs:
 
       - name: 截屏
         run: |
-          screencapture -C -x /screenshot/2.png
+          screencapture -C -x /tmp/screenshot_2.png
 
       - name: 上传
         uses: actions/upload-artifact@v4
         with:
           name: screenshot
-          path: /screenshot/*
+          path: /tmp/screenshot_*.png
 
       - name: 等待
         run: |
