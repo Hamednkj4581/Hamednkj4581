@@ -80,19 +80,21 @@ jobs:
 
           brew install cliclick
           cliclick p
-          cliclick m:20,10
+          # cliclick m:20,10
           cliclick c:20,10
           sleep 2
-          cliclick m:60,75
+          # cliclick m:60,75
           cliclick c:60,75
 
           sleep 1
-          cliclick m:250,120
+          # cliclick m:250,120
           sleep 1
           cliclick c:250,120
           sleep 1
-          # cliclick t:"screensharing"
           cliclick t:"Sharing"
+
+          sleep 2
+          cliclick c:250,340
 
           cliclick p
 
