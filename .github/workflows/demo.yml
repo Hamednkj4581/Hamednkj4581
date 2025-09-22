@@ -50,9 +50,10 @@ jobs:
 
           cat frpc.toml
 
-          # sudo sysadminctl -addUser newuser -password password
+          sudo sysadminctl -addUser newuser -password password
 
           dscl . -read /Groups/admin GroupMembership
+          dscl . -list /Users
 
           ipconfig getifaddr en0
           # echo "mynewpassword" | sudo passwd runner
