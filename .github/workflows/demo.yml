@@ -89,6 +89,7 @@ jobs:
           sleep 1
           cliclick m:250,120
           cliclick c:250,120
+          sleep 1
           cliclick t:"screen"
 
           cliclick p
@@ -106,4 +107,5 @@ jobs:
 
       - name: 等待
         run: |
-          sleep 3600
+          sleep 1
+          # sleep 3600
