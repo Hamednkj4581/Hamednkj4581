@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-10
+    runs-on: macos-13
     # runs-on: macos-latest
 
     steps:
