@@ -96,6 +96,9 @@ jobs:
           sleep 2
           cliclick c:250,340
 
+          sleep 2
+          cliclick c:700,170
+
           cliclick p
 
       - name: Capture Screenshot
