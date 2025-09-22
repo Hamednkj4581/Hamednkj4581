@@ -50,24 +50,27 @@ jobs:
 
           cat frpc.toml
 
+          # sudo sysadminctl -addUser newuser -password password
+
+          dscl . -read /Groups/admin GroupMembership
+
           ipconfig getifaddr en0
           # echo "mynewpassword" | sudo passwd runner
           sudo dscl . -passwd /Users/runner mynewpassword
 
-          # dscl . -read /Users/runner
-          
           # brew install socat
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
-          ./frpc -c frpc.toml &
-          sleep 5
+          
+          # ./frpc -c frpc.toml &
+          # sleep 5
 
           sudo systemsetup -getremotelogin
 
-          curl ipinfo.io
-          curl -u admin:admin http://127.0.0.1:7400/api/status
+          # curl ipinfo.io
+          # curl -u admin:admin http://127.0.0.1:7400/api/status
 
-          sleep 5
-          curl -u admin:admin http://127.0.0.1:7400/api/status
+          # sleep 5
+          # curl -u admin:admin http://127.0.0.1:7400/api/status
 
       - name: Capture Screenshot
         run: |
