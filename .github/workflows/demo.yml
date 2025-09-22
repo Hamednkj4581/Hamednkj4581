@@ -98,6 +98,9 @@ jobs:
           sleep 2
           cliclick c:1140,645
 
+          sleep 2
+          cliclick c:627,254
+
           sleep 1
           screencapture -C -x /tmp/screenshot_1.png
           echo 开启成功
@@ -116,8 +119,8 @@ jobs:
 
           echo 等待授权
           sleep 30
-          screencapture -C -x /tmp/screenshot_13.png
-          cliclick c:510,365
+          cliclick c:1017,447
+          screencapture -C -x /tmp/screenshot_11.png
           sleep 2
           cliclick c:560,365
 
