@@ -93,34 +93,24 @@ jobs:
 
           sleep 2
           cliclick c:700,170
+          echo "开启成功"
+
+          sleep 20
+          cliclick c:510,365
 
           cliclick p
 
-      - name: Capture Screenshot
+      - name: 截屏
         run: |
           screencapture -C -x /tmp/screenshot.png
 
-      - name: 上传1
+      - name: 上传
         uses: actions/upload-artifact@v4
         with:
           name: screenshot1
           path: /tmp/screenshot.png
 
-      - name: 等待1
-        run: |
-          sleep 60
-
-      - name: Capture Screenshot
-        run: |
-          screencapture -C -x /tmp/screenshot.png
-
-      - name: 上传1
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshot2
-          path: /tmp/screenshot.png
-
-      - name: 等待2
+      - name: 等待
         run: |
           # sleep 1
           sleep 3600
