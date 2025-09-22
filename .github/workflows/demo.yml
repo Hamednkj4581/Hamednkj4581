@@ -82,7 +82,6 @@ jobs:
           sleep 2
           screencapture -C -x /tmp/screenshot_1.png
           echo 开启成功
-          exit 0
 
           # brew install socat
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
