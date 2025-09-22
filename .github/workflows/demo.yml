@@ -92,11 +92,11 @@ jobs:
           cliclick c:680,345
 
           sleep 2
-          cliclick c:1140,245
+          cliclick c:1138,237
 
           # Done
-          sleep 1
-          cliclick c:1140,245
+          sleep 2
+          cliclick c:1140,645
 
           sleep 1
           screencapture -C -x /tmp/screenshot_1.png
