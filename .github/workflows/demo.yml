@@ -84,7 +84,7 @@ jobs:
           sleep 2
           cliclick c:60,75
           sleep 2
-          cliclick c:600,164
+          cliclick c:650,190
           sleep 1
           cliclick t:"Screen Sharing"
 
