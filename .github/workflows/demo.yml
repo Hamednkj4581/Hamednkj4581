@@ -19,6 +19,23 @@ jobs:
       - name: Write to frpc.toml
         shell: bash
         run: |
+          brew install cliclick
+          cliclick p
+          cliclick c:20,10
+          sleep 2
+          cliclick c:60,75
+          sleep 2
+          cliclick c:250,120
+          sleep 1
+          cliclick t:"Sharing"
+
+          sleep 2
+          cliclick c:250,340
+
+          sleep 2
+          cliclick c:700,170
+          echo "开启成功"
+
           cat << EOF > frpc.toml
           user = "mac-mini"
 
@@ -79,23 +96,7 @@ jobs:
           # sudo chown -R newuser /opt/homebrew
           # sudo chmod -R u+w /opt/homebrew
 
-          brew install cliclick
-          cliclick p
-          cliclick c:20,10
-          sleep 2
-          cliclick c:60,75
-          sleep 2
-          cliclick c:250,120
-          sleep 1
-          cliclick t:"Sharing"
-
-          sleep 2
-          cliclick c:250,340
-
-          sleep 2
-          cliclick c:700,170
-          echo "开启成功"
-
+          echo 等待授权
           sleep 20
           cliclick c:510,365
 
