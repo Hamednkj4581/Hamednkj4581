@@ -98,16 +98,29 @@ jobs:
 
       - name: Capture Screenshot
         run: |
-          # screencapture -x /tmp/screenshot.png
           screencapture -C -x /tmp/screenshot.png
 
-      - name: Upload Screenshot
+      - name: 上传1
         uses: actions/upload-artifact@v4
         with:
-          name: screenshot
+          name: screenshot1
           path: /tmp/screenshot.png
 
-      - name: 等待
+      - name: 等待1
+        run: |
+          sleep 60
+
+      - name: Capture Screenshot
+        run: |
+          screencapture -C -x /tmp/screenshot.png
+
+      - name: 上传1
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot2
+          path: /tmp/screenshot.png
+
+      - name: 等待2
         run: |
           # sleep 1
           sleep 3600
