@@ -44,7 +44,7 @@ jobs:
           name = "ssh"
           type = "tcp"
           localIP = "127.0.0.1"
-          localPort = 22
+          localPort = 1234
           remotePort = 5901
           EOF
 
@@ -57,19 +57,20 @@ jobs:
 
           ipconfig getifaddr en0
 
-          # brew install socat
+          sudo systemsetup -getremotelogin
+
+          brew install socat
+          socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
           
           ./frpc -c frpc.toml &
           sleep 5
 
-          sudo systemsetup -getremotelogin
-
           curl ipinfo.io
           curl -u admin:admin http://127.0.0.1:7400/api/status
 
-          sleep 5
-          curl -u admin:admin http://127.0.0.1:7400/api/status
+          sudo chown -R newuser /opt/homebrew
+          sudo chmod -R u+w /opt/homebrew
 
       - name: Capture Screenshot
         run: |
