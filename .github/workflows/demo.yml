@@ -20,16 +20,16 @@ jobs:
         shell: bash
         run: |
           brew install displayplacer
+          
           displays=$(displayplacer list)
-          echo $displays
+          echo "$displays"
 
-          # 提取显示器的 display-id
-          display_id=$(echo "$displays" | grep -o 'id:[^ ]*' | head -n 1)
+          # 提取 Persistent screen id
+          display_id=$(echo "$displays" | grep -o 'Persistent screen id: [^ ]*' | awk '{print $4}' | head -n 1)
 
           # 如果找到了 display-id，则设置分辨率
           if [ -n "$display_id" ]; then
             echo "当前显示器 ID: $display_id"
-
             displayplacer "$display_id res:1920x1080"
           else
             echo "未找到显示器 ID"
