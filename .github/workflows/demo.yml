@@ -91,27 +91,24 @@ jobs:
           sleep 5
           cliclick c:680,345
 
+          echo 开启
           sleep 2
           cliclick c:1138,237
 
-          # Done
+          echo Done
           sleep 2
           cliclick c:1140,645
 
+          echo 关闭
           sleep 2
           cliclick c:627,154
 
-          sleep 1
-          screencapture -C -x /tmp/screenshot_1.png
-          echo 开启成功
-
           # brew install socat
-          # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
           
           ./frpc -c frpc.toml &
-          sleep 5
-
+          
+          # sleep 5
           # curl -u admin:admin http://127.0.0.1:7400/api/status
 
           # sudo chown -R newuser /opt/homebrew
@@ -120,23 +117,23 @@ jobs:
           echo 等待授权
           sleep 30
           cliclick c:1017,447
-          screencapture -C -x /tmp/screenshot_11.png
+          echo Allow
           sleep 2
           cliclick c:960,443
 
       - name: 截屏
         if: always()
         run: |
-          screencapture -C -x /tmp/screenshot_2.png
+          screencapture -C -x /tmp/screenshot.png
 
       - name: 上传
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: screenshot
-          path: /tmp/screenshot_*.png
+          path: /tmp/*.png
 
       - name: 等待
         run: |
           # sleep 1
-          sleep 3600
+          sleep 600
