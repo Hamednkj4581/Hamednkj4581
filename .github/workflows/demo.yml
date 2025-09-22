@@ -84,11 +84,13 @@ jobs:
           sleep 2
           cliclick c:60,75
           sleep 2
-          cliclick c:250,120
+          cliclick c:600,164
           sleep 1
           cliclick t:"Screen Sharing"
 
           sleep 3
+          screencapture -C -x /tmp/screenshot_0.png
+          exit 0
           cliclick c:250,270
 
           sleep 2
