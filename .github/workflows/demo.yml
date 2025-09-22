@@ -19,6 +19,22 @@ jobs:
       - name: Write to frpc.toml
         shell: bash
         run: |
+          brew install displayplacer
+          # 获取所有显示器信息
+          displays=$(displayplacer list)
+
+          # 提取显示器的 display-id
+          display_id=$(echo "$displays" | grep -o 'id:[^ ]*' | head -n 1)
+
+          # 如果找到了 display-id，则设置分辨率
+          if [ -n "$display_id" ]; then
+            echo "当前显示器 ID: $display_id"
+
+            displayplacer "$display_id res:1920x1080"
+          else
+            echo "未找到显示器 ID"
+          fi
+
           cat << EOF > frpc.toml
           user = "mac-mini"
 
@@ -101,48 +117,6 @@ jobs:
           cliclick c:510,365
           sleep 2
           cliclick c:560,365
-
-          brew install displayplacer
-          # displayplacer "id:<screen_id> res:1920x1080"
-
-          # 获取所有屏幕信息并解析分辨率
-          screen_info=$(displayplacer list)
-          echo $screen_info
-
-          # 提取分辨率和屏幕 ID
-          max_resolution="0x0"
-          max_resolution_screen_id=""
-          max_width=0
-          max_height=0
-
-          while IFS= read -r line; do
-              # 获取分辨率（假设格式是 res:宽度x高度）
-              if [[ $line =~ res:([0-9]+)x([0-9]+) ]]; then
-                  width=${BASH_REMATCH[1]}
-                  height=${BASH_REMATCH[2]}
-                  screen_id=$(echo $line | grep -o 'id:[^ ]*' | cut -d: -f2)
-
-                  # 计算分辨率，并比较最大的
-                  resolution=$((width * height))
-                  if [ $resolution -gt $((max_width * max_height)) ]; then
-                      max_width=$width
-                      max_height=$height
-                      max_resolution=$line
-                      max_resolution_screen_id=$screen_id
-                  fi
-              fi
-          done <<< "$screen_info"
-
-          # 输出最大分辨率和对应的屏幕 ID
-          echo "最大分辨率: ${max_width}x${max_height}, 屏幕 ID: ${max_resolution_screen_id}"
-
-          # 设置为最大分辨率
-          target_resolution="${max_width}x${max_height}"
-
-          # 修改最大屏幕的分辨率
-          displayplacer "id:$max_resolution_screen_id res:$target_resolution"
-
-          echo "已将最大分辨率的屏幕设置为 $target_resolution"
 
       - name: 截屏
         if: always()
