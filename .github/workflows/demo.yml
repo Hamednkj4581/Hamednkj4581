@@ -63,7 +63,7 @@ jobs:
 
           sudo systemsetup -getremotelogin
 
-                    brew install cliclick
+          brew install cliclick
           cliclick p
           cliclick c:20,10
           sleep 2
@@ -73,7 +73,7 @@ jobs:
           sleep 1
           cliclick t:"Screen Sharing"
 
-          sleep 2
+          sleep 3
           cliclick c:250,270
 
           sleep 2
