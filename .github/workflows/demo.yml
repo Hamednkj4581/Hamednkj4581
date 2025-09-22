@@ -73,7 +73,7 @@ jobs:
           sleep 1
           cliclick t:"Sharing"
 
-          sleep 3
+          sleep 5
           cliclick c:250,340
 
           sleep 2
