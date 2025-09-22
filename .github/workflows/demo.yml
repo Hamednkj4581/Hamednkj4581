@@ -77,8 +77,10 @@ jobs:
           curl ipinfo.io
           curl -u admin:admin http://127.0.0.1:7400/api/status
 
-          sudo chown -R newuser /opt/homebrew
-          sudo chmod -R u+w /opt/homebrew
+          # sudo chown -R newuser /opt/homebrew
+          # sudo chmod -R u+w /opt/homebrew
+
+          brew install cliclick
 
       - name: Capture Screenshot
         run: |
