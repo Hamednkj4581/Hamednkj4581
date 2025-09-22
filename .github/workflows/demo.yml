@@ -97,7 +97,7 @@ jobs:
           # sudo chmod -R u+w /opt/homebrew
 
           echo 等待授权
-          sleep 10
+          sleep 30
           cliclick c:510,365
           sleep 2
           cliclick c:560,365
