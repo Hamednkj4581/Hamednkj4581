@@ -92,13 +92,12 @@ jobs:
           cliclick c:680,345
 
           sleep 2
-          screencapture -C -x /tmp/screenshot_0.png
-          exit 0
-          cliclick c:700,170
+          cliclick c:1140,245
 
           sleep 2
           screencapture -C -x /tmp/screenshot_1.png
           echo 开启成功
+          exit 0
 
           # brew install socat
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:22 &
