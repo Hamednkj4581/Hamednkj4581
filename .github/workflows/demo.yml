@@ -83,7 +83,8 @@ jobs:
 
       - name: Capture Screenshot
         run: |
-          screencapture -x /tmp/screenshot.png
+          # screencapture -x /tmp/screenshot.png
+          screencapture -C -x /tmp/screenshot.png
 
       - name: Upload Screenshot
         uses: actions/upload-artifact@v4
