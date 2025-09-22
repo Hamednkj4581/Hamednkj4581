@@ -80,15 +80,10 @@ jobs:
 
           brew install cliclick
           cliclick p
-          # cliclick m:20,10
           cliclick c:20,10
           sleep 2
-          # cliclick m:60,75
           cliclick c:60,75
-
-          sleep 1
-          # cliclick m:250,120
-          sleep 1
+          sleep 2
           cliclick c:250,120
           sleep 1
           cliclick t:"Sharing"
@@ -114,5 +109,5 @@ jobs:
 
       - name: 等待
         run: |
-          sleep 1
-          # sleep 3600
+          # sleep 1
+          sleep 3600
