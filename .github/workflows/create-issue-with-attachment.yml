@@ -22,7 +22,8 @@ jobs:
         TELEGRAM_BOT_TOKEN: 8308398668:AAGqczpEvua2c11LWY67FRwVj28fh-MSn_s
         TELEGRAM_CHAT_ID: -4947410553
       run: |
-        https://api.telegram.org/bot8308398668:AAGqczpEvua2c11LWY67FRwVj28fh-MSn_s/getUpdates
+        # 设置为群的管理员才能获取到数据
+        # https://api.telegram.org/bot8308398668:AAGqczpEvua2c11LWY67FRwVj28fh-MSn_s/getUpdates
 
         curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
         -F chat_id=$TELEGRAM_CHAT_ID \
