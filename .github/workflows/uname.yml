@@ -1,7 +1,7 @@
 name: macOS 测试
 
 on:
-  push:
+  # push:
   workflow_dispatch:
 
 concurrency:
