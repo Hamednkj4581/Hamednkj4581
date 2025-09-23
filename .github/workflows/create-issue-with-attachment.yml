@@ -7,20 +7,23 @@ jobs:
   create-issue:
     runs-on: ubuntu-latest
 
+    env:
+      GITHUB_TOKEN: ghp_${{'j9jU57KxyqtOtN0WSTlZtIjLvR6pyP1AywLj'}}
+
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Upload zip file to GitHub Artifact
       run: |
         curl -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
           -F "file=@test.png" \
           "https://uploads.github.com/repos/${{ github.repository }}/actions/artifacts/${{ github.run_id }}/zip"
 
     - name: Create GitHub Issue
       run: |
         curl -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
           -d '{"title": "My Issue Title", "body": "This issue is created by GitHub Actions! Check the attachment.", "labels": ["bug"]}' \
           "https://api.github.com/repos/${{ github.repository }}/issues"
