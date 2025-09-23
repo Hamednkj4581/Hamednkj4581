@@ -20,9 +20,6 @@ jobs:
       - name: Write to frpc.toml
         shell: bash
         run: |
-          uname -m
-          exit 0
-          
           brew install displayplacer
           
           displays=$(displayplacer list)
