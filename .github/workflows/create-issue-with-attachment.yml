@@ -15,7 +15,7 @@ jobs:
       run: |
         curl -X POST \
           -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -F "file=@/path/to/your/file.zip" \
+          -F "file=@test.png" \
           "https://uploads.github.com/repos/${{ github.repository }}/actions/artifacts/${{ github.run_id }}/zip"
 
     - name: Create GitHub Issue
