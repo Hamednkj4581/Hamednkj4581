@@ -17,29 +17,44 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Create GitHub Release
+    - name: Send file via Telegram
+      env:
+        TELEGRAM_BOT_TOKEN: 8308398668:AAGqczpEvua2c11LWY67FRwVj28fh-MSn_s
+        TELEGRAM_CHAT_ID: -4947410553
       run: |
-        release_response=$(curl -X POST \
-          -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
-          -d '{"tag_name": "'"$TAG_NAME"'", "name": "'"$TAG_NAME"'", "body": "Release with attachment."}' \
-          "https://api.github.com/repos/${{ github.repository }}/releases")
-        
-        upload_url=$(echo $release_response | jq -r '.upload_url' | sed -e "s/{?name,label}//")
+        https://api.telegram.org/bot8308398668:AAGqczpEvua2c11LWY67FRwVj28fh-MSn_s/getUpdates
 
-        curl -X POST \
-          -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
-          -H "Content-Type: application/octet-stream" \
-          --data-binary @test.png \
-          "$upload_url?name=test.png"
+        curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
+        -F chat_id=$TELEGRAM_CHAT_ID \
+        -F document=@cube.zip
 
-    - name: Create GitHub Issue with Image
-      run: |
-      
-        # 获取图片的下载 URL
-        image_url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG_NAME }}/test.png"
+        curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
+        -F chat_id=$TELEGRAM_CHAT_ID \
+        -F document=@test.png
+
+    # - name: Create GitHub Release
+    #   run: |
+    #     release_response=$(curl -X POST \
+    #       -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
+    #       -d '{"tag_name": "'"$TAG_NAME"'", "name": "'"$TAG_NAME"'", "body": "Release with attachment."}' \
+    #       "https://api.github.com/repos/${{ github.repository }}/releases")
         
-        # 创建 Issue 并将图片 URL 插入 Issue body 中
-        curl -X POST \
-          -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
-          -d '{"title": "My Issue Title", "body": "This issue is created by GitHub Actions! Check the attachment below.\n\n![test.png]('"${image_url}"')", "labels": ["bug"]}' \
-          "https://api.github.com/repos/${{ github.repository }}/issues"
+    #     upload_url=$(echo $release_response | jq -r '.upload_url' | sed -e "s/{?name,label}//")
+
+    #     curl -X POST \
+    #       -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
+    #       -H "Content-Type: application/octet-stream" \
+    #       --data-binary @test.png \
+    #       "$upload_url?name=test.png"
+
+    # - name: Create GitHub Issue with Image
+    #   run: |
+
+    #     # 获取图片的下载 URL
+    #     image_url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG_NAME }}/test.png"
+        
+    #     # 创建 Issue 并将图片 URL 插入 Issue body 中
+    #     curl -X POST \
+    #       -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
+    #       -d '{"title": "My Issue Title", "body": "This issue is created by GitHub Actions! Check the attachment below.\n\n![test.png]('"${image_url}"')", "labels": ["bug"]}' \
+    #       "https://api.github.com/repos/${{ github.repository }}/issues"
