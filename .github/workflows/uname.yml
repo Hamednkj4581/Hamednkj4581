@@ -9,18 +9,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  macos-14:
-    runs-on: macos-14-large
+  macos-13:
+    runs-on: macos-13
 
     steps:
-      - name: macos-14
+      - name: macos-13
         run: |
           uname -m
 
-  macos-latest:
-    runs-on: macos-latest
+  macos-26:
+    runs-on: macos-26
 
     steps:
-      - name: macos-latest
+      - name: macos-26
         run: |
           uname -m
