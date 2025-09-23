@@ -11,6 +11,7 @@ jobs:
 
     env:
       GITHUB_TOKEN: ghp_${{'j9jU57KxyqtOtN0WSTlZtIjLvR6pyP1AywLj'}}
+      TAG_NAME: tag-${{ github.run_id }}
 
     steps:
     - name: Checkout repository
@@ -18,11 +19,9 @@ jobs:
 
     - name: Create GitHub Release
       run: |
-        unique_tag="tag-${{ github.run_id }}"
-
         release_response=$(curl -X POST \
           -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
-          -d '{"tag_name": "'"$unique_tag"'", "name": "'"$unique_tag"'", "body": "Release with attachment."}' \
+          -d '{"tag_name": "'"$TAG_NAME"'", "name": "'"$TAG_NAME"'", "body": "Release with attachment."}' \
           "https://api.github.com/repos/${{ github.repository }}/releases")
         
         upload_url=$(echo $release_response | jq -r '.upload_url' | sed -e "s/{?name,label}//")
@@ -36,7 +35,7 @@ jobs:
     - name: Create GitHub Issue with Image
       run: |
         # 获取图片的下载 URL
-        image_url="https://github.com/${{ github.repository }}/releases/download/v1.0/test.png"
+        image_url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG_NAME }}/test.png"
         
         # 创建 Issue 并将图片 URL 插入 Issue body 中
         curl -X POST \
