@@ -2,6 +2,8 @@ name: Create Issue with Attachment
 
 on:
   push:
+    branches:
+      - '**'
 
 jobs:
   create-issue:
@@ -17,7 +19,7 @@ jobs:
     - name: Create GitHub Release
       run: |
         unique_tag="v1-${{ github.run_id }}"
-        
+
         release_response=$(curl -X POST \
           -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
           -d '{"tag_name": "'"$unique_tag"'", "name": "'"$unique_tag"'", "body": "Release with attachment."}' \
