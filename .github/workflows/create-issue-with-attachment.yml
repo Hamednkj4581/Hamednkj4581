@@ -14,6 +14,21 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Create GitHub Release
+      run: |
+        release_response=$(curl -X POST \
+          -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
+          -d '{"tag_name": "v1.0", "name": "Release v1.0", "body": "Release with attachment."}' \
+          "https://api.github.com/repos/${{ github.repository }}/releases")
+        
+        upload_url=$(echo $release_response | jq -r '.upload_url' | sed -e "s/{?name,label}//")
+
+        curl -X POST \
+          -H "Authorization: token ${{ env.GITHUB_TOKEN }}" \
+          -H "Content-Type: application/octet-stream" \
+          --data-binary @test.png \
+          "$upload_url?name=test.png"
+
     - name: Upload zip file to GitHub Artifact
       run: |
         curl -X POST \
