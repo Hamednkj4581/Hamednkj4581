@@ -28,17 +28,15 @@ jobs:
         # 设置为群的管理员才能获取到数据
         # https://api.telegram.org/bot8308398668:AAGqczpEvua2c11LWY67FRwVj28fh-MSn_s/getUpdates
 
-        CURRENT_TIME=$(date "+%Y-%m-%d %H:%M:%S")
-
         curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
         -F chat_id=$TELEGRAM_CHAT_ID \
         -F document=@cube.zip \
-        -F caption="文件发送时间：$CURRENT_TIME"
+        -F caption="文件发送时间：$(date "+%Y-%m-%d %H:%M:%S")"
 
         curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
         -F chat_id=$TELEGRAM_CHAT_ID \
         -F document=@test.png \
-        -F caption="文件发送时间：$CURRENT_TIME"
+        -F caption="文件发送时间：$(date "+%Y-%m-%d %H:%M:%S")"
 
     # - name: Create GitHub Release
     #   run: |
