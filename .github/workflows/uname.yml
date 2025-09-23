@@ -1,0 +1,26 @@
+name: macOS 测试
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-15:
+    runs-on: macos-15
+
+    steps:
+      - name: macos-15
+        run: |
+          uname -m
+
+  macos-latest:
+    runs-on: macos-latest
+
+    steps:
+      - name: macos-latest
+        run: |
+          uname -m

@@ -1,7 +1,7 @@
 name: macOS Screenshot
 
 on:
-  push:
+  # push:
   workflow_dispatch:
 
 concurrency:
