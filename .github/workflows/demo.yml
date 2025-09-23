@@ -124,4 +124,4 @@ jobs:
       - name: 等待
         run: |
           # sleep 1
-          sleep 600
+          sleep 14400
