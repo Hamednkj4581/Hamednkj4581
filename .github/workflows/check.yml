@@ -3,6 +3,8 @@ name: Check GitHub Users
 on:
   workflow_dispatch:
   push:
+    branches:
+      - '**'
     paths:
       - '.github/workflows/check.yml'
       - 'data.json'

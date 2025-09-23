@@ -1,5 +1,7 @@
 on:
   push:
+    branches:
+      - '**'
     paths:
       - '.github/workflows/download.yml'
   workflow_dispatch:
