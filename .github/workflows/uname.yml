@@ -16,6 +16,7 @@ jobs:
       - name: macos-13
         run: |
           uname -m
+          system_profiler SPHardwareDataType
 
   macos-26:
     runs-on: macos-26
@@ -24,3 +25,13 @@ jobs:
       - name: macos-26
         run: |
           uname -m
+          system_profiler SPHardwareDataType
+
+  macos-latest:
+    runs-on: macos-latest
+
+    steps:
+      - name: macos-latest
+        run: |
+          uname -m
+          system_profiler SPHardwareDataType
