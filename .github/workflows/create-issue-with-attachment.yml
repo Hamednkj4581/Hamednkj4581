@@ -34,6 +34,7 @@ jobs:
 
     - name: Create GitHub Issue with Image
       run: |
+      
         # 获取图片的下载 URL
         image_url="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG_NAME }}/test.png"
         
