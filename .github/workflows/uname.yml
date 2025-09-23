@@ -9,11 +9,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  macos-15:
-    runs-on: macos-15
+  macos-14:
+    runs-on: macos-14
 
     steps:
-      - name: macos-15
+      - name: macos-14
         run: |
           uname -m
 
