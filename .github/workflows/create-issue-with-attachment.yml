@@ -29,12 +29,12 @@ jobs:
 
         curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
         -F chat_id=$TELEGRAM_CHAT_ID \
-        -F document=@cube.zip
+        -F document=@cube.zip \
         -F caption="文件发送时间：$CURRENT_TIME"
 
         curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendDocument" \
         -F chat_id=$TELEGRAM_CHAT_ID \
-        -F document=@test.png
+        -F document=@test.png \
         -F caption="文件发送时间：$CURRENT_TIME"
 
     # - name: Create GitHub Release
