@@ -84,6 +84,7 @@ jobs:
           cliclick c:710,196
           sleep 1
           screencapture -C -x images/screenshot_1.png
+          echo 输入中...
           cliclick t:"Screen Sharing"
           sleep 5
           screencapture -C -x images/screenshot_2.png
@@ -153,14 +154,6 @@ jobs:
 
           recognize_and_click 966 434 110 28 "Share Screen" 600
           recognize_and_click 847 430 226 26 "Allow" 10
-
-          sleep 2
-          screencapture -C -x images/screenshot_5.png
-          exit 1
-          
-          echo Allow
-          sleep 2
-          cliclick c:960,443
 
       - name: 上传
         if: always()
