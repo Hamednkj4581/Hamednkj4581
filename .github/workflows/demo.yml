@@ -78,10 +78,9 @@ jobs:
           screencapture -C -x images/screenshot_1.png
           
           echo 输入区域
-          cliclick -m verbose m:710,196
-          sleep 2
           cliclick -m verbose c:710,196
-          sleep 2
+          sleep 1
+          cliclick -m verbose dc:710,196
           screencapture -C -x images/screenshot_2.png
           echo 输入中...
           cliclick -m verbose t:"Screen Sharing"
