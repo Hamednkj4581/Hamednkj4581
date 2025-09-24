@@ -103,11 +103,13 @@ jobs:
           brew install tesseract
 
           echo 等待授权
+
+          mkdir images
           
           for i in {1..30}; do
             echo "截图 $i"
-            screencapture -C -x /tmp/screenshot_$i.png
-            tesseract /tmp/screenshot_$i.png -
+            screencapture -C -x images/screenshot_$i.png
+            tesseract images/screenshot_$i.png -
             sleep 1
           done
           
@@ -122,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: screenshot
-          path: /tmp/screenshot*.png
+          path: images/*
 
       - name: 等待
         run: |
