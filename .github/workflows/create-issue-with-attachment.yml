@@ -2,8 +2,9 @@ name: Create Issue with Attachment
 
 on:
   push:
-    branches:
-      - '**'
+    paths:
+      - '.github/workflows/create-issue-with-attachment.yml'
+  workflow_dispatch:
 
 env:
   TZ: Asia/Shanghai
