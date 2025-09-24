@@ -77,17 +77,18 @@ jobs:
           sleep 2
           
           echo 输入区域
-          cliclick c:600,230
+          cliclick c:710,196
           sleep 1
           screencapture -C -x images/screenshot_1.png
           cliclick t:"Screen Sharing"
           sleep 5
           screencapture -C -x images/screenshot_2.png
-          exit 1
 
           echo 共享
           cliclick c:680,268
           sleep 2
+          screencapture -C -x images/screenshot_3.png
+          exit 1
 
           echo 开启
           cliclick c:1128,380
