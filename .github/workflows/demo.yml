@@ -145,16 +145,10 @@ jobs:
             return 1
           }
 
-          recognize_and_click 847 430 226 26 "Allow" || true
-          
-          for i in {1..30}; do
-            echo "截图 $i"
-            screencapture -C -x images/screenshot_$i.png
-            tesseract images/screenshot_$i.png -
-            sleep 1
-          done
+          # recognize_and_click 847 430 226 26 "Allow"
 
-          sleep 30
+          recognize_and_click 0 0 1920 1080 "Share Screen"
+
           screencapture -C -x images/screenshot_5.png
           exit 1
           
