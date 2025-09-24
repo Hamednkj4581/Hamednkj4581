@@ -64,6 +64,8 @@ jobs:
           sudo dscl . -append /Groups/admin GroupMembership newuser
           dscl . -read /Groups/admin GroupMembership
 
+          mkdir -p images
+
           brew install cliclick
           cliclick p
           
@@ -108,8 +110,6 @@ jobs:
           brew install tesseract
 
           echo 等待授权
-
-          mkdir -p images
 
           recognize_and_click() {
             local left=$1
