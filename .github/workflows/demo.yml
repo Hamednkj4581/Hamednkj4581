@@ -79,6 +79,7 @@ jobs:
           
           echo 输入区域
           cliclick -m verbose m:710,196
+          sleep 2
           cliclick -m verbose c:710,196
           sleep 2
           screencapture -C -x images/screenshot_2.png
