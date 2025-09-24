@@ -69,11 +69,13 @@ jobs:
           brew install cliclick
           cliclick p
           
+          cliclick m:28,14
           cliclick c:28,14
-          sleep 2
+          sleep 1
           screencapture -C -x images/screenshot_0.png
 
           echo 系统设置
+          cliclick m:47,75
           cliclick c:47,75
           sleep 2
           
@@ -87,16 +89,19 @@ jobs:
           screencapture -C -x images/screenshot_2.png
 
           echo 共享
+          cliclick m:666,316
           cliclick c:666,316
           sleep 2
           screencapture -C -x images/screenshot_3.png
 
           echo 开启
+          cliclick m:1240,343
           cliclick c:1240,343
           sleep 2
           screencapture -C -x images/screenshot_3.png
 
           echo 关闭
+          cliclick m:517,190
           cliclick c:517,190
           screencapture -C -x images/screenshot_4.png
 
