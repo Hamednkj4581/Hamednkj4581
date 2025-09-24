@@ -77,6 +77,7 @@ jobs:
           sleep 2
           
           echo 输入区域
+          cliclick m:710,196
           cliclick c:710,196
           sleep 1
           screencapture -C -x images/screenshot_1.png
