@@ -145,7 +145,7 @@ jobs:
             return 1
           }
 
-          recognize_and_click 847 430 226 26 "Allow"
+          recognize_and_click 847 430 226 26 "Allow" || true
           
           for i in {1..30}; do
             echo "截图 $i"
