@@ -85,6 +85,7 @@ jobs:
           screencapture -C -x images/screenshot_2.png
           echo 输入中...
           cliclick -m verbose t:"Screen Sharing"
+          echo 输入结束
           sleep 5
           screencapture -C -x images/screenshot_3.png
 
