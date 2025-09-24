@@ -99,7 +99,6 @@ jobs:
           echo 关闭
           cliclick c:517,190
           screencapture -C -x images/screenshot_4.png
-          exit 1
 
           # brew install socat
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
@@ -108,9 +107,6 @@ jobs:
           
           # sleep 5
           # curl -u admin:admin http://127.0.0.1:7400/api/status
-
-          # sudo chown -R newuser /opt/homebrew
-          # sudo chmod -R u+w /opt/homebrew
 
           brew install tesseract
 
@@ -157,6 +153,10 @@ jobs:
             tesseract images/screenshot_$i.png -
             sleep 1
           done
+
+          sleep 30
+          screencapture -C -x images/screenshot_5.png
+          exit 1
           
           echo Share Screen
           cliclick c:1017,447
