@@ -66,28 +66,30 @@ jobs:
 
           brew install cliclick
           cliclick p
-          cliclick c:20,10
-          sleep 2
-          cliclick c:60,75
-          sleep 2
-          cliclick c:650,190
-          sleep 2
-          cliclick t:"Screen Sharing"
+          
+          cliclick c:27,13
+          sleep 1
 
+          echo 系统设置
+          cliclick c:47,75
+          sleep 2
+          
+          echo 输入区域
+          cliclick c:600,230
+          sleep 1
+          cliclick t:"Screen Sharing"
           sleep 5
-          cliclick c:680,345
+
+          echo 共享
+          cliclick c:680,268
+          sleep 2
 
           echo 开启
+          cliclick c:1128,380
           sleep 2
-          cliclick c:1138,237
-
-          echo Done
-          sleep 2
-          cliclick c:1140,645
 
           echo 关闭
-          sleep 2
-          cliclick c:627,154
+          cliclick c:517,190
 
           # brew install socat
           # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
