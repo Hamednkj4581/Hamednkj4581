@@ -152,13 +152,12 @@ jobs:
 
           # recognize_and_click 847 430 226 26 "Allow"
 
-          recognize_and_click 0 0 1920 1080 "Share Screen"
+          recognize_and_click 966 434 110 28 "Share Screen" 600
 
+          sleep 2
           screencapture -C -x images/screenshot_5.png
           exit 1
           
-          echo Share Screen
-          cliclick c:1017,447
           echo Allow
           sleep 2
           cliclick c:960,443
