@@ -104,7 +104,42 @@ jobs:
 
           echo 等待授权
 
-          mkdir images
+          mkdir -p images
+
+          recognize_and_click() {
+            local left=$1
+            local top=$2
+            local width=$3
+            local height=$4
+            local target_text=$5
+            local max_wait_time=${6:-30}  # 默认最大等待时间为30秒
+
+            for ((i=1; i<=max_wait_time; i++)); do
+              echo "截图 $i"
+              screencapture -C -x -R${left},${top},${width},${height} images/screenshot.png
+
+              # 使用tesseract识别截图中的文字
+              recognized_text=$(tesseract images/screenshot.png -)
+
+              # 如果识别到目标文本，模拟点击区域中心
+              local center_x=$((left + width / 2))
+              local center_y=$((top + height / 2))
+
+              if [[ "$recognized_text" == *"$target_text"* ]]; then
+                echo "识别到目标文本 '$target_text'，正在点击..."
+                cliclick c:$(($center_x)),$(($center_y))
+                return 0
+              fi
+
+              sleep 1
+              echo "未识别到目标文本 '$target_text'，已等待 $i 秒..."
+            done
+
+            echo "未在 $max_wait_time 秒内识别到目标文本 '$target_text'，退出。"
+            return 1
+          }
+
+          recognize_and_click 847 430 226 26 "Allow"
           
           for i in {1..30}; do
             echo "截图 $i"
