@@ -100,10 +100,14 @@ jobs:
           # sudo chown -R newuser /opt/homebrew
           # sudo chmod -R u+w /opt/homebrew
 
+          brew install tesseract
+
           echo 等待授权
           
           for i in {1..30}; do
+            echo "截图 $i"
             screencapture -C -x /tmp/screenshot_$i.png
+            tesseract ~/Desktop/screenshot_$i.png -
             sleep 1
           done
           
