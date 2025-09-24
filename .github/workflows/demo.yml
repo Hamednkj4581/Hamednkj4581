@@ -86,14 +86,15 @@ jobs:
           screencapture -C -x images/screenshot_2.png
 
           echo 共享
-          cliclick c:680,268
+          cliclick c:666,316
           sleep 2
           screencapture -C -x images/screenshot_3.png
-          exit 1
 
           echo 开启
           cliclick c:1128,380
           sleep 2
+          screencapture -C -x images/screenshot_3.png
+          exit 1
 
           echo 关闭
           cliclick c:517,190
