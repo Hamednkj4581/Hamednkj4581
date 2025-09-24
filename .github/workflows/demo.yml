@@ -148,8 +148,8 @@ jobs:
             return 1
           }
 
-          recognize_and_click 966 434 110 28 "Share Screen" 600
-          recognize_and_click 847 430 226 26 "Allow" 10
+          recognize_and_click 966 434 110 28 "Share Screen" 120
+          recognize_and_click 847 430 226 26 "Allow" 5
 
       - name: 上传
         if: always()
