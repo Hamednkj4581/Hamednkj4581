@@ -1,7 +1,9 @@
 name: macOS Screenshot
 
 on:
-  # push:
+  push:
+    paths:
+      .github/workflows/demo.yml
   workflow_dispatch:
 
 concurrency:
@@ -99,24 +101,24 @@ jobs:
           # sudo chmod -R u+w /opt/homebrew
 
           echo 等待授权
-          sleep 30
+          
+          for i in {1..30}; do
+            screencapture -C -x /tmp/screenshot_$i.png
+            sleep 1
+          done
+          
           echo Share Screen
           cliclick c:1017,447
           echo Allow
           sleep 2
           cliclick c:960,443
 
-      - name: 截屏
-        if: always()
-        run: |
-          screencapture -C -x /tmp/screenshot.png
-
       - name: 上传
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: screenshot
-          path: /tmp/*.png
+          path: /tmp/screenshot*.png
 
       - name: 等待
         run: |
