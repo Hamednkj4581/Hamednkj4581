@@ -117,8 +117,7 @@ jobs:
           }
 
           while true; do
-            recognize_and_click 847 430 226 26 "Allow" 1
-            if [[ $? -eq 0 ]]; then
+            if recognize_and_click 847 430 226 26 "Allow" 1; then
                 echo "点击成功，退出循环"
                 break
             fi
