@@ -161,7 +161,7 @@ jobs:
           screencapture -C -x images/screenshot_5.png
 
           echo 关闭
-          cliclick -m verbose c:517,190
+          cliclick -m verbose c:628,154
           screencapture -C -x images/screenshot_6.png
 
           recognize_and_click 966 434 110 28 "Share Screen" 120
