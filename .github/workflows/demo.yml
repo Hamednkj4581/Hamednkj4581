@@ -17,10 +17,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Write to frpc.toml
-        shell: bash
+      - name: displayplacer
         run: |
           brew install displayplacer
           
@@ -37,6 +36,9 @@ jobs:
             echo "未找到显示器 ID"
           fi
 
+      - name: Write to frpc.toml
+        shell: bash
+        run: |
           cat << EOF > frpc.toml
           user = "mac-mini"
 
@@ -62,11 +64,25 @@ jobs:
 
           sudo sysadminctl -addUser newuser -password password
           sudo dscl . -append /Groups/admin GroupMembership newuser
-          dscl . -read /Groups/admin GroupMembership
+          # dscl . -read /Groups/admin GroupMembership
+
+          # brew install socat
+          # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
+          
+          chmod +x ./frpc-$(uname -m)
+          ./frpc-$(uname -m) -c frpc.toml &
+          
+          # sleep 5
+          # curl -u admin:admin http://127.0.0.1:7400/api/status
+
+      - name: frpc
+        shell: bash
+        run: |
+          brew install cliclick
+          brew install tesseract
+          # brew install tesseract-lang
 
           mkdir -p images
-
-          brew install cliclick
 
           cliclick -m verbose c:28,14
           sleep 2
@@ -102,17 +118,6 @@ jobs:
           cliclick -m verbose c:517,190
           screencapture -C -x images/screenshot_6.png
 
-          # brew install socat
-          # socat TCP-LISTEN:1234,fork TCP:127.0.0.1:5900 &
-          
-          ./frpc -c frpc.toml &
-          
-          # sleep 5
-          # curl -u admin:admin http://127.0.0.1:7400/api/status
-
-          brew install tesseract
-          # brew install tesseract-lang
-
           echo 等待授权
 
           recognize_and_click() {
@@ -124,7 +129,6 @@ jobs:
             local max_wait_time=${6:-30}  # 默认最大等待时间为30秒
 
             for ((i=1; i<=max_wait_time; i++)); do
-              echo "截图 $i"
               screencapture -C -x -R${left},${top},${width},${height} images/screenshot.png
 
               # 使用tesseract识别截图中的文字
@@ -148,7 +152,7 @@ jobs:
             return 1
           }
 
-          recognize_and_click 966 434 110 28 "Share Screen" 60
+          recognize_and_click 966 434 110 28 "Share Screen" 120
           recognize_and_click 847 430 226 26 "Allow" 5
 
       - name: 上传
