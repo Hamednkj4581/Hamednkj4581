@@ -123,9 +123,8 @@ jobs:
                 break
             fi
 
-            # 没识别到，随机移动鼠标
-            rand_x=$((RANDOM % 1440)) # 假设屏幕宽度 1440
-            rand_y=$((RANDOM % 900))  # 假设屏幕高度 900
+            rand_x=$((RANDOM % 1920))
+            rand_y=$((RANDOM % 1080))
             echo "随机移动到 $rand_x,$rand_y"
             cliclick -m verbose m:${rand_x},${rand_y}
 
