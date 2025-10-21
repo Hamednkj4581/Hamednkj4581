@@ -39,7 +39,8 @@ jobs:
           cat << EOF > frpc.toml
           user = "VirtualMachine"
 
-          serverAddr = "165.154.244.104"
+          # serverAddr = "165.154.244.104"
+          serverAddr = "129.211.44.147"
           serverPort = 7000
           loginFailExit = true
 
@@ -96,6 +97,7 @@ jobs:
           Start-Process -FilePath "frpc" -ArgumentList "-c frpc.toml" -NoNewWindow
 
           cd C:/Users/runneradmin/Desktop
+          curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
           curl -L -O https://cdn.netsarang.net/b9dd7d10/Xshell-8.0.0087p.exe
           curl -L -O https://cdn.netsarang.net/b9dd7d10/Xftp-8.0.0086p.exe
           # curl -L -O https://gosspublic.alicdn.com/ossbrowser/1.18.0/oss-browser-win32-x64.zip?spm=a2c4g.11186623.0.0.a371450fzLHNZ2&file=oss-browser-win32-x64.zip
@@ -179,6 +181,9 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
+
+
 
 
 
