@@ -40,7 +40,7 @@ jobs:
           user = "VirtualMachine"
 
           # serverAddr = "165.154.244.104"
-          serverAddr = "tx20250001.duckdns.org"
+          serverAddr = "43.132.185.150"
           serverPort = 7000
           loginFailExit = true
 
@@ -181,6 +181,7 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
 
 
 
