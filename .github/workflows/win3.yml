@@ -33,51 +33,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.9.2'
-          target: 'desktop'
-          modules: 'qtmultimedia'
-
       - name: Write to frpc.toml
         shell: bash
         run: |
           cat << EOF > frpc.toml
           user = "VirtualMachine"
 
-          serverAddr = "165.154.244.104"
+          # serverAddr = "165.154.244.104"
+          serverAddr = "tx20250001.duckdns.org"
           serverPort = 7000
           loginFailExit = true
 
           auth.method = "token"
           auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
 
-          webServer.addr = "127.0.0.1"
-          webServer.port = 7400
-          webServer.user = "admin"
-          webServer.password = "admin"
-
           [[proxies]]
           name = "fiddler"
           type = "tcp"
           localIP = "127.0.0.1"
           localPort = 8866
-          remotePort = 0
-
-          [[proxies]]
-          name = "httptoolkit"
-          type = "tcp"
-          localIP = "127.0.0.1"
-          localPort = 8000
-          remotePort = 0
-
-          [[proxies]]
-          name = "httptoolkit2"
-          type = "tcp"
-          localIP = "127.0.0.1"
-          localPort = 9000
-          remotePort = 0
+          remotePort = 8866
 
           [[proxies]]
           name = "rdp${{ inputs.port }}"
@@ -122,8 +97,9 @@ jobs:
           Start-Process -FilePath "frpc" -ArgumentList "-c frpc.toml" -NoNewWindow
 
           cd C:/Users/runneradmin/Desktop
-          curl -L -O https://cdn.netsarang.net/5e7d1e09/Xshell-8.0.0084p.exe
-          curl -L -O https://cdn.netsarang.net/5e7d1e09/Xftp-8.0.0084p.exe
+          curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
+          curl -L -O https://cdn.netsarang.net/82f44d11/Xshell-8.0.0086p.exe
+          curl -L -O https://cdn.netsarang.net/82f44d11/Xftp-8.0.0086p.exe
           # curl -L -O https://gosspublic.alicdn.com/ossbrowser/1.18.0/oss-browser-win32-x64.zip?spm=a2c4g.11186623.0.0.a371450fzLHNZ2&file=oss-browser-win32-x64.zip
           # curl -L -O https://cdn.mysql.com//Downloads/MySQLGUITools/mysql-workbench-community-8.0.42-winx64.msi
 
@@ -205,6 +181,11 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
+
+
+
+
 
 
 
