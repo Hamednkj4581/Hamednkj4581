@@ -98,8 +98,8 @@ jobs:
 
           cd C:/Users/runneradmin/Desktop
           curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
-          curl -L -O https://cdn.netsarang.net/82f44d11/Xshell-8.0.0086p.exe
-          curl -L -O https://cdn.netsarang.net/82f44d11/Xftp-8.0.0086p.exe
+          curl -L -O https://cdn.netsarang.net/906cca12/Xshell-8.0.0086p.exe
+          curl -L -O https://cdn.netsarang.net/906cca12/Xftp-8.0.0086p.exe
           # curl -L -O https://gosspublic.alicdn.com/ossbrowser/1.18.0/oss-browser-win32-x64.zip?spm=a2c4g.11186623.0.0.a371450fzLHNZ2&file=oss-browser-win32-x64.zip
           # curl -L -O https://cdn.mysql.com//Downloads/MySQLGUITools/mysql-workbench-community-8.0.42-winx64.msi
 
@@ -181,7 +181,6 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
-
 
 
 
