@@ -42,7 +42,7 @@ jobs:
           # serverAddr = "165.154.244.104"
           serverAddr = "tx20250001.duckdns.org"
           serverPort = 7000
-          loginFailExit = true
+          loginFailExit = false
 
           auth.method = "token"
           auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
@@ -181,6 +181,7 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
 
 
 
