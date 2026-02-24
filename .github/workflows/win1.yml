@@ -39,7 +39,7 @@ jobs:
           cat << EOF > frpc.toml
           user = "VirtualMachine"
 
-          serverAddr = "8.210.25.235"
+          serverAddr = "47.239.198.51"
           # serverAddr = "tx20250001.duckdns.org"
           serverPort = 7000
           loginFailExit = false
@@ -181,6 +181,7 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
 
 
 
