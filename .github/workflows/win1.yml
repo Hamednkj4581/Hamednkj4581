@@ -32,7 +32,6 @@ jobs:
 
     steps:
       - name: Delete old workflow runs
-        if: matrix.os == 'macos-15-intel' && matrix.qt_arch == 'clang_64'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -195,6 +194,7 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
 
 
 
