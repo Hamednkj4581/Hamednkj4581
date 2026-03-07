@@ -41,6 +41,7 @@ jobs:
           # 获取所有已完成的运行记录，保留最近 10 条，其他的删除
           gh run list --repo $REPO --limit 1000 --json databaseId --status completed \
             | jq '.[10:] | .[].databaseId' \
+            | tr -d '\r' \
             | xargs -I {} gh run delete {} --repo $REPO
           
           echo "Cleanup complete."
@@ -195,6 +196,7 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
 
 
 
