@@ -4,12 +4,12 @@ on:
       os:
         description: '系统'
         required: true
-        default: 'ubuntu-latest'
+        default: 'windows-latest'
         type: choice
         options:
           - windows-latest
           - ubuntu-latest
-          - ubuntu-latest:gui
+          - macos-latest
       
       port:
         description: '端口'
@@ -23,14 +23,33 @@ concurrency:
 
 run-name: '${{ inputs.os }} ${{ inputs.port }}'
 
+permissions:
+  actions: write
+  contents: read
+
 env:
   TZ: Asia/Shanghai
 
 jobs:
   job:
-    runs-on: ${{ contains(inputs.os, ':gui') && 'ubuntu-latest' || inputs.os }}
-    timeout-minutes: 350
+    runs-on: ${{ inputs.os }}
+
     steps:
+      - name: Delete old workflow runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Deleting old runs for repo: $REPO"
+          # 获取所有已完成的运行记录，保留最近 20 条，其他的删除
+          gh run list --repo $REPO --limit 1000 --json databaseId --status completed \
+            | jq '.[20:] | .[].databaseId' \
+            | tr -d '\r' \
+            | xargs -I {} gh run delete {} --repo $REPO
+          
+          echo "Cleanup complete."
+          
       - uses: actions/checkout@v4
 
       - name: Write to frpc.toml
@@ -39,9 +58,10 @@ jobs:
           cat << EOF > frpc.toml
           user = "VirtualMachine"
 
-          serverAddr = "165.154.244.104"
+          serverAddr = "47.239.198.51"
+          # serverAddr = "tx20250001.duckdns.org"
           serverPort = 7000
-          loginFailExit = true
+          loginFailExit = false
 
           auth.method = "token"
           auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
@@ -87,26 +107,29 @@ jobs:
           taskkill /f /im explorer.exe
           start explorer.exe
 
+          reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 0 /f
+    
+          net stop termservice /y
+          net start termservice
+
           netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
           Start-Process -FilePath "frpc" -ArgumentList "-c frpc.toml" -NoNewWindow
 
+          cd C:/Users/runneradmin/Desktop
+          curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
+          curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
+          curl -L -o Xftp_Installer.exe https://cdn.netsarang.net/v8/Xftp-latest-p
           # curl -L -O https://gosspublic.alicdn.com/ossbrowser/1.18.0/oss-browser-win32-x64.zip?spm=a2c4g.11186623.0.0.a371450fzLHNZ2&file=oss-browser-win32-x64.zip
-          # curl -L -O https://cdn.mysql.com//Downloads/MySQLGUITools/mysql-workbench-community-8.0.42-winx64.msi
-          # curl -L -O https://autoupdate.termius.com/windows/Install%20Termius.exe
-          # curl -L -O https://github.com/rustdesk/rustdesk/releases/download/1.3.9/rustdesk-1.3.9-x86_64.exe
+          # curl -L -O https://cdn.mysql.com//Downloads/MySQLGUITools/mysql-workbench-community-8.0.46-winx64.msi
 
           # https://community.chocolatey.org/packages
 
-          # choco install sublimetext4
+          choco install sublimetext4
+          
           # echo "::group::vscode"
           # choco install vscode
           # echo "::endgroup::"
 
-          # echo "::group::termius"
-          # choco install termius
-          # echo "::endgroup::"
-
-          # timeout /t -1
           Start-Sleep -Seconds 86400
 
       - name: 运行Linux
@@ -124,7 +147,7 @@ jobs:
           sudo systemctl restart ssh
 
           echo "runner:mynewpassword" | sudo chpasswd
-
+          docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:22
           docker run -d --name frpc -v ./frpc.toml:/etc/frp/frpc.toml snowdreamtech/frpc
           
           # docker run -d \
@@ -144,49 +167,59 @@ jobs:
             -e PASSWORD=6a17a5dd-5f76-4b09-b567-9b0d5d449da5 \
             shadowsocks/shadowsocks-libev
 
-          if [[ "${{ inputs.os }}" != *":gui" ]]; then
-            docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:22
-            docker logs -f frpc
-          fi
-
-      - name: 安装图形界面
-        if: ${{ runner.os == 'Linux' }} && ${{ contains(inputs.os, ':gui') }}
-        run: |
-          start_time=$(date +%s)
-
-          docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:3389
-
-          sudo apt update
-          sudo apt install xrdp -y
-
-          sudo apt install xfce4 xfce4-goodies -y
-          echo xfce4-session > ~/.xsession
-
-          # sudo apt install lxqt -y
-          # echo "startlxqt" > ~/.xsession
-
-          sudo systemctl enable xrdp
-          sudo systemctl start xrdp
-
-          end_time=$(date +%s)
-          total_time=$(echo "scale=1; ($end_time - $start_time) / 60" | bc)
-
-          echo "总耗时: $total_time 分钟"
-
           docker logs -f frpc
 
-      - name: Run my local action
-        uses: ./
-
-      # - name: 保存数据库
-      #   if: always()
+      # - name: 安装图形界面
+      #   if: ${{ runner.os == 'Linux' }}
       #   run: |
-      #     echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
-      #     echo "当前时间戳: $(date +%s)"
-      #     # docker stop frpc
-      #     sleep 30s
-      #     echo "当前时间: $(date '+%Y-%m-%d %H:%M:%S')"
-      #     echo "当前时间戳: $(date +%s)"
+      #     start_time=$(date +%s)
+
+      #     docker run -d -p 1236:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:3389
+      #     sudo apt update
+      #     sudo apt install xrdp -y
+
+      #     sudo apt install xfce4 xfce4-goodies -y
+      #     echo xfce4-session > ~/.xsession
+
+      #     # sudo apt install lxqt -y
+      #     # echo "startlxqt" > ~/.xsession
+
+      #     sudo systemctl enable xrdp
+      #     sudo systemctl start xrdp
+
+      #     end_time=$(date +%s)
+      #     total_time=$(echo "scale=1; ($end_time - $start_time) / 60" | bc)
+
+      #     echo "总耗时: $total_time 分钟"
+
+      #     docker logs -f frpc
+
+      - name: 运行macOS
+        if: ${{ runner.os == 'macOS' }}
+        run: |
+          echo "Running on macOS"
+          curl ipinfo.io
+          # 在此添加 macOS 特定的命令
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
