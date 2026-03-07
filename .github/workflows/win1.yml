@@ -23,6 +23,10 @@ concurrency:
 
 run-name: '${{ inputs.os }} ${{ inputs.port }}'
 
+permissions:
+  actions: write
+  contents: read
+
 env:
   TZ: Asia/Shanghai
 
@@ -196,6 +200,7 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
 
 
 
