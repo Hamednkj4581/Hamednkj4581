@@ -4,7 +4,7 @@ on:
       os:
         description: '系统'
         required: true
-        default: 'ubuntu-latest'
+        default: 'windows-latest'
         type: choice
         options:
           - windows-latest
@@ -204,6 +204,7 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
 
 
 
