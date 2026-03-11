@@ -23,6 +23,10 @@ concurrency:
 
 run-name: '${{ inputs.os }} ${{ inputs.port }}'
 
+permissions:
+  actions: write
+  contents: read
+
 env:
   TZ: Asia/Shanghai
 
@@ -31,6 +35,21 @@ jobs:
     runs-on: ${{ inputs.os }}
 
     steps:
+      - name: Delete old workflow runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Deleting old runs for repo: $REPO"
+          # 获取所有已完成的运行记录，保留最近 20 条，其他的删除
+          gh run list --repo $REPO --limit 1000 --json databaseId --status completed \
+            | jq '.[20:] | .[].databaseId' \
+            | tr -d '\r' \
+            | xargs -I {} gh run delete {} --repo $REPO
+          
+          echo "Cleanup complete."
+          
       - uses: actions/checkout@v4
 
       - name: Write to frpc.toml
@@ -97,9 +116,13 @@ jobs:
           Start-Process -FilePath "frpc" -ArgumentList "-c frpc.toml" -NoNewWindow
 
           cd C:/Users/runneradmin/Desktop
-          curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
-          curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
-          curl -L -o Xftp_Installer.exe https://cdn.netsarang.net/v8/Xftp-latest-p
+
+          curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
+          unzip tabby-1.0.230-portable-x64.zip -d tabby
+          
+          # curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
+          # curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
+          # curl -L -o Xftp_Installer.exe https://cdn.netsarang.net/v8/Xftp-latest-p
           # curl -L -O https://gosspublic.alicdn.com/ossbrowser/1.18.0/oss-browser-win32-x64.zip?spm=a2c4g.11186623.0.0.a371450fzLHNZ2&file=oss-browser-win32-x64.zip
           # curl -L -O https://cdn.mysql.com//Downloads/MySQLGUITools/mysql-workbench-community-8.0.46-winx64.msi
 
@@ -181,6 +204,14 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
+
+
+
+
+
+
+
+
 
 
 
