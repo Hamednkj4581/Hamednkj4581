@@ -36,8 +36,8 @@ jobs:
       - uses: actions/checkout@v4
       - id: set-matrix
         run: |
-          # count=$(jq 'length' data.json)
-          count=20
+          count=$(jq 'unique | length' data.json)
+          echo "去重后的项数: $count"
           ids=$(jq -c -n --argjson n "$count" '[range(1; $n+1)]')
           echo "ids=$ids" >> $GITHUB_OUTPUT
 
