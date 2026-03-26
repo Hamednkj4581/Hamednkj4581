@@ -78,7 +78,7 @@ jobs:
           # cd C:/Users/runneradmin/Desktop
 
           curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
-          unzip -q tabby-1.0.230-portable-x64.zip -d tabby | pv -l -s $(unzip -l tabby-1.0.230-portable-x64.zip | tail -n 1 | awk '{print $2}') > /dev/null
+          7z x tabby-1.0.230-portable-x64.zip -otabby
           
           # curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
           # curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
