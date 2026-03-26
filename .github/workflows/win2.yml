@@ -72,12 +72,13 @@ jobs:
           net start termservice
 
           netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
-          Start-Process -FilePath "node" -ArgumentList "client.js" -NoNewWindow
+          # Start-Process -FilePath "node" -ArgumentList "client.js" -NoNewWindow
+          node client.js
 
-          cd C:/Users/runneradmin/Desktop
+          # cd C:/Users/runneradmin/Desktop
 
-          curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
-          unzip tabby-1.0.230-portable-x64.zip -d tabby
+          # curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
+          # unzip tabby-1.0.230-portable-x64.zip -d tabby
           
           # curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
           # curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
@@ -87,13 +88,13 @@ jobs:
 
           # https://community.chocolatey.org/packages
 
-          choco install sublimetext4
+          # choco install sublimetext4
           
           # echo "::group::vscode"
           # choco install vscode
           # echo "::endgroup::"
 
-          Start-Sleep -Seconds 86400
+          # Start-Sleep -Seconds 86400
 
       - name: 运行Linux
         if: ${{ runner.os == 'Linux' }}
