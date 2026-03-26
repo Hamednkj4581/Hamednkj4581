@@ -72,9 +72,9 @@ jobs:
           net start termservice
 
           netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
-          # Start-Process -FilePath "node" -ArgumentList "client.js" -NoNewWindow
           rm package.json
-          node client.js
+          Start-Process -FilePath "node" -ArgumentList "client.js" -NoNewWindow
+          # node client.js
 
           # cd C:/Users/runneradmin/Desktop
 
