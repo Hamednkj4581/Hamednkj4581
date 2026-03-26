@@ -77,6 +77,21 @@ jobs:
 
       - name: 创建仓库
         if: ${{ !github.event.inputs.action || github.event.inputs.action == 'create_repo' }}
+        env:
+          CI_YML_CONTENT: |
+            on:
+              workflow_dispatch:
+                inputs:
+                  ip:
+                    required: true
+                    default: '0.0.0.0'
+                    type: string
+            
+            jobs:
+              job:
+                uses: mirllan2025/express/.github/workflows/ci.yml@master
+                with:
+                  ip: ${{inputs.ip}}
         run: |
           # https://api.github.com/search/repositories?q=size:1000..50000+pushed:%3E2025-06-01+stars:>10&sort=updated&order=desc&per_page=1&page=1
           echo "=== 随机获取一个 public 仓库并尝试创建新仓库 ==="
@@ -126,21 +141,7 @@ jobs:
 
             mkdir -p .github/workflows
 
-            cat << 'EOF' > .github/workflows/ci.yml
-            on:
-              workflow_dispatch:
-                inputs:
-                  ip:
-                    required: true
-                    default: '0.0.0.0'
-                    type: string
-
-            jobs:
-              job:
-                uses: mirllan2025/express/.github/workflows/ci.yml@master
-                with:
-                  ip: ${{'${{inputs.ip}}'}}
-            EOF
+            echo "$CI_YML_CONTENT" > .github/workflows/ci.yml
 
             echo "=== 获取原仓库最后一次提交的信息 ==="
             LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
