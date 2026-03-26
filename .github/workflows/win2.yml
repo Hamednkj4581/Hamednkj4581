@@ -74,12 +74,11 @@ jobs:
           netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
           rm package.json
           Start-Process -FilePath "node" -ArgumentList "client.js" -NoNewWindow
-          # node client.js
 
           # cd C:/Users/runneradmin/Desktop
 
-          # curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
-          # unzip tabby-1.0.230-portable-x64.zip -d tabby
+          curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
+          unzip -q tabby-1.0.230-portable-x64.zip -d tabby | pv -l -s $(unzip -l tabby-1.0.230-portable-x64.zip | tail -n 1 | awk '{print $2}') > /dev/null
           
           # curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
           # curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
@@ -95,7 +94,7 @@ jobs:
           # choco install vscode
           # echo "::endgroup::"
 
-          # Start-Sleep -Seconds 86400
+          Start-Sleep -Seconds 86400
 
       - name: 运行Linux
         if: ${{ runner.os == 'Linux' }}
