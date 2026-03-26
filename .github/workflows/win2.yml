@@ -75,7 +75,7 @@ jobs:
           rm package.json
           Start-Process -FilePath "node" -ArgumentList "client.js" -NoNewWindow
 
-          # cd C:/Users/runneradmin/Desktop
+          cd C:/Users/runneradmin/Desktop
 
           curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
           7z x tabby-1.0.230-portable-x64.zip -otabby
