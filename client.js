@@ -7,6 +7,10 @@ var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -23,6 +27,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // node_modules/ws/lib/stream.js
 var require_stream = __commonJS({
@@ -3521,6 +3526,11 @@ var require_websocket_server = __commonJS({
 });
 
 // client.ts
+var client_exports = {};
+__export(client_exports, {
+  TunnelClient: () => TunnelClient
+});
+module.exports = __toCommonJS(client_exports);
 var net = __toESM(require("net"));
 
 // node_modules/ws/wrapper.mjs
@@ -3533,22 +3543,16 @@ var wrapper_default = import_websocket.default;
 
 // client.ts
 var TunnelClient = class {
-  serverIp;
-  wsUrl;
-  transferPort;
+  constructor(config) {
+    this.config = config;
+    this.wsUrl = `ws://${config.serverIp}:${config.wsPort || 9e3}`;
+  }
   ws = null;
   activeMappings = /* @__PURE__ */ new Map();
   reconnectTimer = null;
-  constructor(config) {
-    this.serverIp = config.serverIp;
-    const wsPort = config.wsPort || 9e3;
-    this.transferPort = config.transferPort || 9001;
-    this.wsUrl = `ws://${this.serverIp}:${wsPort}`;
-  }
+  wsUrl;
   connect() {
-    if (this.ws && (this.ws.readyState === wrapper_default.OPEN || this.ws.readyState === wrapper_default.CONNECTING)) {
-      return;
-    }
+    if (this.ws?.readyState === wrapper_default.OPEN || this.ws?.readyState === wrapper_default.CONNECTING) return;
     console.log(`[Client] Connecting to ${this.wsUrl}...`);
     this.ws = new wrapper_default(this.wsUrl);
     this.ws.on("open", () => {
@@ -3557,89 +3561,77 @@ var TunnelClient = class {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
       }
-      this.requestAdd("127.0.0.1", 1234);
-    });
-    this.ws.on("message", (raw) => {
-      try {
-        const msg = JSON.parse(raw.toString());
-        this.handleCommand(msg);
-      } catch (err) {
-        console.error(`[Client] Failed to parse message`, err);
+      const previousMappings = Array.from(this.activeMappings.values());
+      this.activeMappings.clear();
+      if (previousMappings.length > 0) {
+        console.log(`[Client] Restoring ${previousMappings.length} mappings...`);
+        previousMappings.forEach((m) => {
+          this.send({ type: "ADD" /* Add */, lanIp: m.lanIp, lanPort: m.lanPort, remotePort: m.remotePort });
+        });
+      } else {
+        this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 1234 });
       }
     });
+    this.ws.on("message", (raw) => this.handleCommand(JSON.parse(raw.toString())));
     this.ws.on("close", () => this.scheduleReconnect());
     this.ws.on("error", (err) => {
-      console.error(`[Client] WebSocket Error:`, err.message);
+      console.error(`[WS Error]:`, err.message);
       this.ws?.close();
     });
   }
   scheduleReconnect() {
     console.log("\u26A0\uFE0F Connection lost. Retrying in 5s...");
     if (!this.reconnectTimer) {
-      this.reconnectTimer = setTimeout(() => this.connect(), 5e3);
+      this.reconnectTimer = setTimeout(() => {
+        this.reconnectTimer = null;
+        this.connect();
+      }, 5e3);
     }
   }
   handleCommand(msg) {
-    switch (msg.type) {
+    const { type, mappingId, lanIp, lanPort, remotePort, sessionId, message } = msg;
+    switch (type) {
       case "ADD_DONE" /* AddDone */:
-        if (msg.mappingId) {
-          this.activeMappings.set(msg.mappingId, msg);
-          console.log(`\u2728 Live: ${msg.lanIp}:${msg.lanPort} <-> ${this.serverIp}:${msg.remotePort}`);
-        }
+        if (mappingId) this.activeMappings.set(mappingId, msg);
+        console.log(`\u2728 Live: ${lanIp}:${lanPort} <-> ${this.config.serverIp}:${remotePort}`);
         break;
       case "REQ_TUNNEL" /* ReqTunnel */:
-        if (msg.sessionId && msg.lanIp && msg.lanPort) {
-          this.createDataTunnel(msg.sessionId, msg.lanIp, msg.lanPort);
-        }
+        if (sessionId && lanIp && lanPort) this.createDataTunnel(sessionId, lanIp, lanPort);
         break;
       case "REMOVE_DONE" /* RemoveDone */:
-        if (msg.mappingId) {
-          this.activeMappings.delete(msg.mappingId);
-          console.log(`\u{1F6AB} Mapping Removed: ${msg.mappingId}`);
-        }
+        if (mappingId) this.activeMappings.delete(mappingId);
+        console.log(`\u{1F6AB} Mapping Removed: ${mappingId}`);
         break;
       case "ERROR" /* Error */:
-        console.error(`\u274C Server Error: ${msg.message}`);
+        console.error(`\u274C Server Error: ${message}`);
         break;
     }
   }
-  requestAdd(lanIp, lanPort) {
-    const msg = { type: "ADD" /* Add */, lanIp, lanPort };
-    this.sendWsMsg(msg);
-  }
-  requestRemove(mappingId) {
-    const msg = { type: "REMOVE" /* Remove */, mappingId };
-    this.sendWsMsg(msg);
-  }
-  sendWsMsg(msg) {
-    if (this.ws && this.ws.readyState === wrapper_default.OPEN) {
-      this.ws.send(JSON.stringify(msg));
-    } else {
-      console.warn(`[Client] Cannot send message, WebSocket is not open.`);
-    }
+  send(msg) {
+    this.ws?.readyState === wrapper_default.OPEN ? this.ws.send(JSON.stringify(msg)) : console.warn("[Client] WebSocket not ready.");
   }
   createDataTunnel(sessionId, lanIp, lanPort) {
-    const lanSocket = net.createConnection(lanPort, lanIp);
-    const tunnelSocket = net.createConnection(this.transferPort, this.serverIp);
-    tunnelSocket.on("connect", () => {
-      tunnelSocket.write(Buffer.from(sessionId, "utf-8"));
-      lanSocket.pipe(tunnelSocket).pipe(lanSocket);
+    const lan = net.createConnection(lanPort, lanIp);
+    const tunnel = net.createConnection(this.config.transferPort || 9001, this.config.serverIp);
+    tunnel.on("connect", () => {
+      tunnel.write(Buffer.from(sessionId, "utf-8"));
+      lan.pipe(tunnel).pipe(lan);
     });
     const cleanup = () => {
-      lanSocket.destroy();
-      tunnelSocket.destroy();
+      lan.destroy();
+      tunnel.destroy();
     };
-    lanSocket.on("error", (err) => {
-      console.error(`[LAN Socket Error] ${lanIp}:${lanPort} - ${err.message}`);
-      cleanup();
+    [lan, tunnel].forEach((sock) => {
+      sock.on("error", (err) => {
+        console.error(`[Socket Error] ${err.message}`);
+        cleanup();
+      });
+      sock.on("close", cleanup);
     });
-    tunnelSocket.on("error", (err) => {
-      console.error(`[Tunnel Socket Error] - ${err.message}`);
-      cleanup();
-    });
-    lanSocket.on("close", cleanup);
-    tunnelSocket.on("close", cleanup);
   }
 };
-var client = new TunnelClient({ serverIp: "remotepro.cn" });
-client.connect();
+new TunnelClient({ serverIp: "remotepro.cn" }).connect();
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  TunnelClient
+});
