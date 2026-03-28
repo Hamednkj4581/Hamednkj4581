@@ -3610,23 +3610,31 @@ var TunnelClient = class {
   send(msg) {
     this.ws?.readyState === wrapper_default.OPEN ? this.ws.send(JSON.stringify(msg)) : console.warn("[Client] WebSocket not ready.");
   }
+  // 🌟 核心修改点：改写为串行连接策略
   createDataTunnel(sessionId, lanIp, lanPort) {
     const lan = net.createConnection(lanPort, lanIp);
-    const tunnel = net.createConnection(this.config.transferPort || 9001, this.config.serverIp);
-    tunnel.on("connect", () => {
-      tunnel.write(Buffer.from(sessionId, "utf-8"));
-      lan.pipe(tunnel).pipe(lan);
-    });
+    let tunnel = null;
     const cleanup = () => {
       lan.destroy();
-      tunnel.destroy();
+      if (tunnel) tunnel.destroy();
     };
-    [lan, tunnel].forEach((sock) => {
-      sock.on("error", (err) => {
-        console.error(`[Socket Error] ${err.message}`);
+    lan.on("error", (err) => {
+      console.error(`[LAN Error] ${lanIp}:${lanPort} - ${err.message}`);
+      cleanup();
+    });
+    lan.on("close", cleanup);
+    lan.on("connect", () => {
+      tunnel = net.createConnection(this.config.transferPort || 9001, this.config.serverIp);
+      tunnel.on("error", (err) => {
+        console.error(`[Tunnel Error] ${err.message}`);
         cleanup();
       });
-      sock.on("close", cleanup);
+      tunnel.on("close", cleanup);
+      tunnel.on("connect", () => {
+        if (!tunnel) return;
+        tunnel.write(Buffer.from(sessionId, "utf-8"));
+        lan.pipe(tunnel).pipe(lan);
+      });
     });
   }
 };
