@@ -14,7 +14,7 @@ on:
       port:
         description: '端口'
         required: true
-        default: '9003'
+        default: '9001'
         type: string
 
 concurrency:
@@ -52,47 +52,6 @@ jobs:
           
       - uses: actions/checkout@v4
 
-      - name: Write to frpc.toml
-        shell: bash
-        run: |
-          cat << EOF > frpc.toml
-          user = "VirtualMachine"
-
-          serverAddr = "47.239.198.51"
-          # serverAddr = "tx20250001.duckdns.org"
-          serverPort = 7000
-          loginFailExit = false
-
-          auth.method = "token"
-          auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
-
-          [[proxies]]
-          name = "fiddler"
-          type = "tcp"
-          localIP = "127.0.0.1"
-          localPort = 8866
-          remotePort = 8866
-
-          [[proxies]]
-          name = "rdp${{ inputs.port }}"
-          type = "tcp"
-          localIP = "${{ runner.os == 'Windows' && '127.0.0.1' || '172.17.0.1' }}"
-          localPort = 1234
-          remotePort = ${{ inputs.port }}
-
-          EOF
-
-          if [[ "$RUNNER_OS" != "Windows" ]]; then
-          cat << EOF >> frpc.toml
-          [[proxies]]
-          name = "ss"
-          type = "tcp"
-          localIP = "172.17.0.1"
-          localPort = 8388
-          remotePort = 8389
-          EOF
-          fi
-
       - name: 运行Windows
         if: ${{ runner.os == 'Windows' }}
         run: |
@@ -113,12 +72,13 @@ jobs:
           net start termservice
 
           netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
-          Start-Process -FilePath "frpc" -ArgumentList "-c frpc.toml" -NoNewWindow
+          rm package.json
+          Start-Process -FilePath "node" -ArgumentList "client.js" -NoNewWindow
 
           cd C:/Users/runneradmin/Desktop
 
           curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
-          unzip tabby-1.0.230-portable-x64.zip -d tabby
+          7z x tabby-1.0.230-portable-x64.zip -otabby
           
           # curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
           # curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
@@ -128,7 +88,7 @@ jobs:
 
           # https://community.chocolatey.org/packages
 
-          choco install sublimetext4
+          # choco install sublimetext4
           
           # echo "::group::vscode"
           # choco install vscode
@@ -204,27 +164,3 @@ jobs:
           echo "Running on macOS"
           curl ipinfo.io
           # 在此添加 macOS 特定的命令
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
