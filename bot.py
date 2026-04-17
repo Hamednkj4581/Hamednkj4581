@@ -2,6 +2,7 @@ import logging
 import os
 from io import BytesIO
 from typing import List
+from urllib.parse import parse_qs, urlparse
 
 import cv2
 import numpy as np
@@ -69,6 +70,27 @@ def decode_qr_codes(image_bytes: bytes) -> List[str]:
     return all_results
 
 
+def extract_totp_secret(content: str) -> str | None:
+    """Extract secret from otpauth://totp URI."""
+    try:
+        parsed = urlparse(content)
+    except Exception:
+        return None
+
+    if parsed.scheme.lower() != "otpauth":
+        return None
+    if parsed.netloc.lower() != "totp":
+        return None
+
+    query = parse_qs(parsed.query, keep_blank_values=False)
+    secrets = query.get("secret")
+    if not secrets:
+        return None
+
+    secret = secrets[0].strip()
+    return secret or None
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "你好！请发送一张包含二维码的图片。\n"
@@ -116,6 +138,15 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     lines = [f"{idx}. {text}" for idx, text in enumerate(qr_contents, start=1)]
     await message.reply_text("识别结果：\n" + "\n".join(lines))
+
+    secret_lines = []
+    for idx, text in enumerate(qr_contents, start=1):
+        secret = extract_totp_secret(text)
+        if secret:
+            secret_lines.append(f"{idx}. {secret}")
+
+    if secret_lines:
+        await message.reply_text("检测到 TOTP 秘钥：\n" + "\n".join(secret_lines))
 
 
 async def handle_unsupported(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
