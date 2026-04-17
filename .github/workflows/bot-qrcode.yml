@@ -1,0 +1,36 @@
+name: Run Telegram QR Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_minutes:
+        description: "Bot运行时长（分钟）"
+        required: true
+        default: "10"
+        type: choice
+        options:
+          - "10"
+          - "30"
+          - "60"
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(inputs.run_minutes) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # - name: Create .env from secret
+      #   run: |
+      #     cat > .env <<'EOF'
+      #     TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+      #     EOF
+
+      - name: Run bot
+        run: python bot.py
