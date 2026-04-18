@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
-      max-parallel: 10
+      # max-parallel: 10
       fail-fast: false
       matrix:
         job_id: ${{ fromJson(needs.prepare-matrix.outputs.ids) }}
@@ -44,7 +44,7 @@ jobs:
         name: 下载并统计速度
         run: |
           yarn
-          timeout 120s node index.js --count 10
+          # timeout 120s node index.js --count 10
           # 下载文件并获取速度（字节/秒）
           # url=https://apt.mobileanjian.com/debs/old/com.cyjh.mobileanjian_1.8.1_default_iphoneos-arm.deb
           # url=https://down-syouwan-com-1301430143.cos.ap-shanghai.myqcloud.com/myt.ipa
