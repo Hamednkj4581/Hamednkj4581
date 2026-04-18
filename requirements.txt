@@ -1,4 +1,4 @@
-python-telegram-bot
+aiogram>=3.4
 zxing-cpp
 Pillow
 python-dotenv

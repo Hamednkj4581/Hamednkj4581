@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from io import BytesIO
@@ -5,10 +6,11 @@ from typing import List
 from urllib.parse import parse_qs, urlparse
 
 import zxingcpp
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command
+from aiogram.types import Message
 from dotenv import load_dotenv
 from PIL import Image
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 
 logging.basicConfig(
@@ -60,15 +62,20 @@ def extract_totp_secret(content: str) -> str | None:
     return secret or None
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(
+_IMAGE_DOCUMENT = (
+    F.document & F.document.mime_type & F.document.mime_type.startswith("image/")
+)
+
+
+async def start(message: Message) -> None:
+    await message.answer(
         "你好！请发送一张包含二维码的图片。\n"
         "我会自动识别二维码并把内容回复给你。"
     )
 
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(
+async def help_command(message: Message) -> None:
+    await message.answer(
         "使用方式：\n"
         "1) 直接发送图片（相册/拍照）\n"
         "2) 或发送图片文件（document）\n\n"
@@ -76,37 +83,30 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
-async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message = update.message
-    if message is None:
-        return
-
-    telegram_file = None
-    if message.photo:
-        telegram_file = await message.photo[-1].get_file()
-    elif message.document and message.document.mime_type and message.document.mime_type.startswith("image/"):
-        telegram_file = await message.document.get_file()
-
-    if telegram_file is None:
-        return
-
+async def handle_image(message: Message, bot: Bot) -> None:
     image_buffer = BytesIO()
-    await telegram_file.download_to_memory(out=image_buffer)
+    if message.photo:
+        await bot.download(message.photo[-1], destination=image_buffer)
+    elif message.document:
+        await bot.download(message.document, destination=image_buffer)
+    else:
+        return
+
     image_bytes = image_buffer.getvalue()
 
     try:
         qr_contents = decode_qr_codes(image_bytes)
     except Exception as exc:
         logger.exception("二维码识别失败: %s", exc)
-        await message.reply_text("识别失败：图片无法处理，请换一张更清晰的图片再试。")
+        await message.answer("识别失败：图片无法处理，请换一张更清晰的图片再试。")
         return
 
     if not qr_contents:
-        await message.reply_text("没有识别到二维码，请发送更清晰或完整的二维码图片。")
+        await message.answer("没有识别到二维码，请发送更清晰或完整的二维码图片。")
         return
 
     lines = [f"{idx}. {text}" for idx, text in enumerate(qr_contents, start=1)]
-    await message.reply_text("识别结果：\n" + "\n".join(lines))
+    await message.answer("识别结果：\n" + "\n".join(lines))
 
     secret_lines = []
     for idx, text in enumerate(qr_contents, start=1):
@@ -115,35 +115,34 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             secret_lines.append(f"{idx}. {secret}")
 
     if secret_lines:
-        await message.reply_text("检测到 TOTP 秘钥：\n" + "\n".join(secret_lines))
+        await message.answer("检测到 TOTP 秘钥：\n" + "\n".join(secret_lines))
 
 
-async def handle_unsupported(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if update.message:
-        await update.message.reply_text("请发送图片，我会帮你解析二维码。")
+async def handle_unsupported(message: Message) -> None:
+    await message.answer("请发送图片，我会帮你解析二维码。")
 
 
-def main() -> None:
+async def main() -> None:
     load_dotenv()
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
         raise RuntimeError("缺少 TELEGRAM_BOT_TOKEN 环境变量，请先配置后再运行。")
 
-    app = Application.builder().token(token).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(MessageHandler(filters.PHOTO, handle_image))
-    app.add_handler(
-        MessageHandler(
-            filters.Document.IMAGE,
-            handle_image,
-        )
+    bot = Bot(token=token)
+    dp = Dispatcher()
+
+    dp.message.register(start, Command("start"))
+    dp.message.register(help_command, Command("help"))
+    dp.message.register(handle_image, F.photo)
+    dp.message.register(handle_image, _IMAGE_DOCUMENT)
+    dp.message.register(
+        handle_unsupported,
+        ~F.photo & ~_IMAGE_DOCUMENT & ~(F.text & F.text.startswith("/")),
     )
-    app.add_handler(MessageHandler(~(filters.PHOTO | filters.Document.IMAGE | filters.COMMAND), handle_unsupported))
 
     logger.info("Bot is running...")
-    app.run_polling(drop_pending_updates=True)
+    await dp.start_polling(bot, drop_pending_updates=True)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
