@@ -3545,8 +3545,9 @@ var wrapper_default = import_websocket.default;
 var TunnelClient = class {
   constructor(config) {
     this.config = config;
-    this.wsUrl = `ws://${config.serverIp}:${config.wsPort || 9e3}`;
+    this.wsUrl = `ws://${config.serverIp}:${config.wsPort || 1e4}`;
   }
+  config;
   ws = null;
   activeMappings = /* @__PURE__ */ new Map();
   reconnectTimer = null;
@@ -3569,7 +3570,9 @@ var TunnelClient = class {
           this.send({ type: "ADD" /* Add */, lanIp: m.lanIp, lanPort: m.lanPort, remotePort: m.remotePort });
         });
       } else {
-        this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 1234 });
+        this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 80, remotePort: 9010 });
+        this.send({ type: "ADD" /* Add */, lanIp: "192.168.0.112", lanPort: 3e3, remotePort: 9011 });
+        this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 1234, remotePort: 9011 });
       }
     });
     this.ws.on("message", (raw) => this.handleCommand(JSON.parse(raw.toString())));
@@ -3624,7 +3627,7 @@ var TunnelClient = class {
     });
     lan.on("close", cleanup);
     lan.on("connect", () => {
-      tunnel = net.createConnection(this.config.transferPort || 9001, this.config.serverIp);
+      tunnel = net.createConnection(this.config.transferPort || 10001, this.config.serverIp);
       tunnel.on("error", (err) => {
         console.error(`[Tunnel Error] ${err.message}`);
         cleanup();
@@ -3638,7 +3641,7 @@ var TunnelClient = class {
     });
   }
 };
-new TunnelClient({ serverIp: "remotepro.cn" }).connect();
+new TunnelClient({ serverIp: "47.239.198.51" }).connect();
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   TunnelClient
