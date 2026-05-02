@@ -1,6 +1,5 @@
 {
   "name": "app",
-  "type": "module",
   "scripts": {
     "build": "tsc --build",
     "reset": "git reset --hard HEAD"
