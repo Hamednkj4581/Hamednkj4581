@@ -111,7 +111,7 @@ jobs:
 
           echo "runner:mynewpassword" | sudo chpasswd
           docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:22
-          docker run -d --name frpc -v ./frpc.toml:/etc/frp/frpc.toml snowdreamtech/frpc
+          # docker run -d --name frpc -v ./frpc.toml:/etc/frp/frpc.toml snowdreamtech/frpc
           
           # docker run -d \
           #   --name socks5-proxy \
@@ -130,7 +130,7 @@ jobs:
             -e PASSWORD=6a17a5dd-5f76-4b09-b567-9b0d5d449da5 \
             shadowsocks/shadowsocks-libev
 
-          docker logs -f frpc
+          node client.js
 
       # - name: 安装图形界面
       #   if: ${{ runner.os == 'Linux' }}
