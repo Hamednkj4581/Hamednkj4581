@@ -3573,6 +3573,7 @@ var TunnelClient = class {
         // this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 80, remotePort: 9010 });
         // this.send({ type: "ADD" /* Add */, lanIp: "192.168.0.112", lanPort: 3e3, remotePort: 9011 });
         this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 1234, remotePort: 9001, udid: "6953827e6a2b4d5e3b44363d" });
+        this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 8388, remotePort: 9999, udid: "6953827e6a2b4d5e3b44363d" });
       }
     });
     this.ws.on("message", (raw) => this.handleCommand(JSON.parse(raw.toString())));
