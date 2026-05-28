@@ -62,7 +62,7 @@ var require_stream = __commonJS({
         const data = !isBinary && duplex._readableState.objectMode ? msg.toString() : msg;
         if (!duplex.push(data)) ws.pause();
       });
-      ws.once("error", function error(err) {
+      ws.once("error", function error2(err) {
         if (duplex.destroyed) return;
         terminateOnDestroy = false;
         duplex.destroy(err);
@@ -78,7 +78,7 @@ var require_stream = __commonJS({
           return;
         }
         let called = false;
-        ws.once("error", function error(err2) {
+        ws.once("error", function error2(err2) {
           called = true;
           callback(err2);
         });
@@ -1005,26 +1005,26 @@ var require_receiver = __commonJS({
         }
         const buf = this.consume(2);
         if ((buf[0] & 48) !== 0) {
-          const error = this.createError(
+          const error2 = this.createError(
             RangeError,
             "RSV2 and RSV3 must be clear",
             true,
             1002,
             "WS_ERR_UNEXPECTED_RSV_2_3"
           );
-          cb(error);
+          cb(error2);
           return;
         }
         const compressed = (buf[0] & 64) === 64;
         if (compressed && !this._extensions[PerMessageDeflate.extensionName]) {
-          const error = this.createError(
+          const error2 = this.createError(
             RangeError,
             "RSV1 must be clear",
             true,
             1002,
             "WS_ERR_UNEXPECTED_RSV_1"
           );
-          cb(error);
+          cb(error2);
           return;
         }
         this._fin = (buf[0] & 128) === 128;
@@ -1032,109 +1032,109 @@ var require_receiver = __commonJS({
         this._payloadLength = buf[1] & 127;
         if (this._opcode === 0) {
           if (compressed) {
-            const error = this.createError(
+            const error2 = this.createError(
               RangeError,
               "RSV1 must be clear",
               true,
               1002,
               "WS_ERR_UNEXPECTED_RSV_1"
             );
-            cb(error);
+            cb(error2);
             return;
           }
           if (!this._fragmented) {
-            const error = this.createError(
+            const error2 = this.createError(
               RangeError,
               "invalid opcode 0",
               true,
               1002,
               "WS_ERR_INVALID_OPCODE"
             );
-            cb(error);
+            cb(error2);
             return;
           }
           this._opcode = this._fragmented;
         } else if (this._opcode === 1 || this._opcode === 2) {
           if (this._fragmented) {
-            const error = this.createError(
+            const error2 = this.createError(
               RangeError,
               `invalid opcode ${this._opcode}`,
               true,
               1002,
               "WS_ERR_INVALID_OPCODE"
             );
-            cb(error);
+            cb(error2);
             return;
           }
           this._compressed = compressed;
         } else if (this._opcode > 7 && this._opcode < 11) {
           if (!this._fin) {
-            const error = this.createError(
+            const error2 = this.createError(
               RangeError,
               "FIN must be set",
               true,
               1002,
               "WS_ERR_EXPECTED_FIN"
             );
-            cb(error);
+            cb(error2);
             return;
           }
           if (compressed) {
-            const error = this.createError(
+            const error2 = this.createError(
               RangeError,
               "RSV1 must be clear",
               true,
               1002,
               "WS_ERR_UNEXPECTED_RSV_1"
             );
-            cb(error);
+            cb(error2);
             return;
           }
           if (this._payloadLength > 125 || this._opcode === 8 && this._payloadLength === 1) {
-            const error = this.createError(
+            const error2 = this.createError(
               RangeError,
               `invalid payload length ${this._payloadLength}`,
               true,
               1002,
               "WS_ERR_INVALID_CONTROL_PAYLOAD_LENGTH"
             );
-            cb(error);
+            cb(error2);
             return;
           }
         } else {
-          const error = this.createError(
+          const error2 = this.createError(
             RangeError,
             `invalid opcode ${this._opcode}`,
             true,
             1002,
             "WS_ERR_INVALID_OPCODE"
           );
-          cb(error);
+          cb(error2);
           return;
         }
         if (!this._fin && !this._fragmented) this._fragmented = this._opcode;
         this._masked = (buf[1] & 128) === 128;
         if (this._isServer) {
           if (!this._masked) {
-            const error = this.createError(
+            const error2 = this.createError(
               RangeError,
               "MASK must be set",
               true,
               1002,
               "WS_ERR_EXPECTED_MASK"
             );
-            cb(error);
+            cb(error2);
             return;
           }
         } else if (this._masked) {
-          const error = this.createError(
+          const error2 = this.createError(
             RangeError,
             "MASK must be clear",
             true,
             1002,
             "WS_ERR_UNEXPECTED_MASK"
           );
-          cb(error);
+          cb(error2);
           return;
         }
         if (this._payloadLength === 126) this._state = GET_PAYLOAD_LENGTH_16;
@@ -1169,14 +1169,14 @@ var require_receiver = __commonJS({
         const buf = this.consume(8);
         const num = buf.readUInt32BE(0);
         if (num > Math.pow(2, 53 - 32) - 1) {
-          const error = this.createError(
+          const error2 = this.createError(
             RangeError,
             "Unsupported WebSocket frame: payload length > 2^53 - 1",
             false,
             1009,
             "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
           );
-          cb(error);
+          cb(error2);
           return;
         }
         this._payloadLength = num * Math.pow(2, 32) + buf.readUInt32BE(4);
@@ -1192,14 +1192,14 @@ var require_receiver = __commonJS({
         if (this._payloadLength && this._opcode < 8) {
           this._totalPayloadLength += this._payloadLength;
           if (this._totalPayloadLength > this._maxPayload && this._maxPayload > 0) {
-            const error = this.createError(
+            const error2 = this.createError(
               RangeError,
               "Max payload size exceeded",
               false,
               1009,
               "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
             );
-            cb(error);
+            cb(error2);
             return;
           }
         }
@@ -1266,14 +1266,14 @@ var require_receiver = __commonJS({
           if (buf.length) {
             this._messageLength += buf.length;
             if (this._messageLength > this._maxPayload && this._maxPayload > 0) {
-              const error = this.createError(
+              const error2 = this.createError(
                 RangeError,
                 "Max payload size exceeded",
                 false,
                 1009,
                 "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH"
               );
-              cb(error);
+              cb(error2);
               return;
             }
             this._fragments.push(buf);
@@ -1322,14 +1322,14 @@ var require_receiver = __commonJS({
         } else {
           const buf = concat(fragments, messageLength);
           if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-            const error = this.createError(
+            const error2 = this.createError(
               Error,
               "invalid UTF-8 sequence",
               true,
               1007,
               "WS_ERR_INVALID_UTF8"
             );
-            cb(error);
+            cb(error2);
             return;
           }
           if (this._state === INFLATING || this._allowSynchronousEvents) {
@@ -1361,14 +1361,14 @@ var require_receiver = __commonJS({
           } else {
             const code = data.readUInt16BE(0);
             if (!isValidStatusCode(code)) {
-              const error = this.createError(
+              const error2 = this.createError(
                 RangeError,
                 `invalid status code ${code}`,
                 true,
                 1002,
                 "WS_ERR_INVALID_CLOSE_CODE"
               );
-              cb(error);
+              cb(error2);
               return;
             }
             const buf = new FastBuffer(
@@ -1377,14 +1377,14 @@ var require_receiver = __commonJS({
               data.length - 2
             );
             if (!this._skipUTF8Validation && !isValidUTF8(buf)) {
-              const error = this.createError(
+              const error2 = this.createError(
                 Error,
                 "invalid UTF-8 sequence",
                 true,
                 1007,
                 "WS_ERR_INVALID_UTF8"
               );
-              cb(error);
+              cb(error2);
               return;
             }
             this._loop = false;
@@ -2023,10 +2023,10 @@ var require_event_target = __commonJS({
             callListener(handler, this, event);
           };
         } else if (type === "error") {
-          wrapper = function onError(error) {
+          wrapper = function onError(error2) {
             const event = new ErrorEvent("error", {
-              error,
-              message: error.message
+              error: error2,
+              message: error2.message
             });
             event[kTarget] = this;
             callListener(handler, this, event);
@@ -3532,6 +3532,7 @@ __export(client_exports, {
 });
 module.exports = __toCommonJS(client_exports);
 var net = __toESM(require("net"));
+var dgram = __toESM(require("dgram"));
 
 // node_modules/ws/wrapper.mjs
 var import_stream = __toESM(require_stream(), 1);
@@ -3542,6 +3543,19 @@ var import_websocket_server = __toESM(require_websocket_server(), 1);
 var wrapper_default = import_websocket.default;
 
 // client.ts
+function now() {
+  const d = /* @__PURE__ */ new Date();
+  return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}:${d.getSeconds().toString().padStart(2, "0")}.${d.getMilliseconds().toString().padStart(3, "0")}`;
+}
+function log(tag, msg) {
+  console.log(`[${now()}] [${tag}] ${msg}`);
+}
+function warn(tag, msg) {
+  console.warn(`[${now()}] [${tag}] ${msg}`);
+}
+function error(tag, msg) {
+  console.error(`[${now()}] [${tag}] ${msg}`);
+}
 var TunnelClient = class {
   constructor(config) {
     this.config = config;
@@ -3554,10 +3568,10 @@ var TunnelClient = class {
   wsUrl;
   connect() {
     if (this.ws?.readyState === wrapper_default.OPEN || this.ws?.readyState === wrapper_default.CONNECTING) return;
-    console.log(`[Client] Connecting to ${this.wsUrl}...`);
+    log("Client", `Connecting to ${this.wsUrl}...`);
     this.ws = new wrapper_default(this.wsUrl);
     this.ws.on("open", () => {
-      console.log("\u{1F680} Connected to Server");
+      log("Client", "Connected to server");
       if (this.reconnectTimer) {
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = null;
@@ -3565,27 +3579,26 @@ var TunnelClient = class {
       const previousMappings = Array.from(this.activeMappings.values());
       this.activeMappings.clear();
       if (previousMappings.length > 0) {
-        console.log(`[Client] Restoring ${previousMappings.length} mappings...`);
+        log("Client", `Restoring ${previousMappings.length} mapping(s)`);
         previousMappings.forEach((m) => {
-          this.send({ type: "ADD" /* Add */, lanIp: m.lanIp, lanPort: m.lanPort, remotePort: m.remotePort });
+          this.sendAdd(m.lanIp, m.lanPort, m.remotePort, m.protocol);
         });
       } else {
-        // this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 80, remotePort: 9010 });
-        // this.send({ type: "ADD" /* Add */, lanIp: "192.168.0.112", lanPort: 3e3, remotePort: 9011 });
-        this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 1234, remotePort: 9001, udid: "6953827e6a2b4d5e3b44363d" });
-        this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 8388, remotePort: 9999, udid: "6953827e6a2b4d5e3b44363d" });
-        this.send({ type: "ADD" /* Add */, lanIp: "127.0.0.1", lanPort: 8081, remotePort: 9998, udid: "6953827e6a2b4d5e3b44363d" });
+        this.sendAdd("127.0.0.1", 1234, 9001);
+        this.sendAdd("127.0.0.1", 8388, 9999);
       }
     });
-    this.ws.on("message", (raw) => this.handleCommand(JSON.parse(raw.toString())));
+    this.ws.on("message", (raw) => {
+      this.handleCommand(JSON.parse(raw.toString()));
+    });
     this.ws.on("close", () => this.scheduleReconnect());
     this.ws.on("error", (err) => {
-      console.error(`[WS Error]:`, err.message);
+      error("WS", err.message);
       this.ws?.close();
     });
   }
   scheduleReconnect() {
-    console.log("\u26A0\uFE0F Connection lost. Retrying in 5s...");
+    warn("Client", "Connection lost. Retrying in 5s...");
     if (!this.reconnectTimer) {
       this.reconnectTimer = setTimeout(() => {
         this.reconnectTimer = null;
@@ -3595,25 +3608,42 @@ var TunnelClient = class {
   }
   handleCommand(msg) {
     const { type, mappingId, lanIp, lanPort, remotePort, sessionId, message } = msg;
+    const protocol = msg.protocol || "tcp";
     switch (type) {
       case "ADD_DONE" /* AddDone */:
-        if (mappingId) this.activeMappings.set(mappingId, msg);
-        console.log(`\u2728 Live: ${lanIp}:${lanPort} <-> ${this.config.serverIp}:${remotePort}`);
+        if (mappingId) this.activeMappings.set(mappingId, { ...msg, udid: this.config.udid });
+        log("Mapping", `Live [${protocol.toUpperCase()}] ${lanIp}:${lanPort} <-> ${this.config.serverIp}:${remotePort}`);
         break;
       case "REQ_TUNNEL" /* ReqTunnel */:
-        if (sessionId && lanIp && lanPort) this.createDataTunnel(sessionId, lanIp, lanPort);
+        if (sessionId && lanIp && lanPort) {
+          protocol === "udp" ? this.createUdpDataTunnel(sessionId, lanIp, lanPort) : this.createDataTunnel(sessionId, lanIp, lanPort);
+        }
         break;
       case "REMOVE_DONE" /* RemoveDone */:
         if (mappingId) this.activeMappings.delete(mappingId);
-        console.log(`\u{1F6AB} Mapping Removed: ${mappingId}`);
+        log("Mapping", `Removed ${mappingId}`);
         break;
       case "ERROR" /* Error */:
-        console.error(`\u274C Server Error: ${message}`);
+        error("Server", message || "Unknown server error");
         break;
     }
   }
   send(msg) {
-    this.ws?.readyState === wrapper_default.OPEN ? this.ws.send(JSON.stringify(msg)) : console.warn("[Client] WebSocket not ready.");
+    if (this.ws?.readyState === wrapper_default.OPEN) {
+      this.ws.send(JSON.stringify(msg));
+    } else {
+      warn("Client", "WebSocket not ready");
+    }
+  }
+  sendAdd(lanIp, lanPort, remotePort, protocol) {
+    this.send({
+      type: "ADD" /* Add */,
+      udid: this.config.udid,
+      lanIp,
+      lanPort,
+      remotePort,
+      protocol
+    });
   }
   // 🌟 核心修改点：改写为串行连接策略
   createDataTunnel(sessionId, lanIp, lanPort) {
@@ -3624,26 +3654,88 @@ var TunnelClient = class {
       if (tunnel) tunnel.destroy();
     };
     lan.on("error", (err) => {
-      console.error(`[LAN Error] ${lanIp}:${lanPort} - ${err.message}`);
+      error("TCP-LAN", `${lanIp}:${lanPort} - ${err.message}`);
       cleanup();
     });
     lan.on("close", cleanup);
     lan.on("connect", () => {
       tunnel = net.createConnection(this.config.transferPort || 10001, this.config.serverIp);
       tunnel.on("error", (err) => {
-        console.error(`[Tunnel Error] ${err.message}`);
+        error("TCP-TUNNEL", err.message);
         cleanup();
       });
       tunnel.on("close", cleanup);
       tunnel.on("connect", () => {
         if (!tunnel) return;
         tunnel.write(Buffer.from(sessionId, "utf-8"));
+        log("TCP", `Tunnel ready session=${sessionId} ${lanIp}:${lanPort}`);
         lan.pipe(tunnel).pipe(lan);
       });
     });
   }
+  createUdpDataTunnel(sessionId, lanIp, lanPort) {
+    const lan = dgram.createSocket("udp4");
+    const tunnel = net.createConnection(this.config.transferPort || 10001, this.config.serverIp);
+    let closed = false;
+    const cleanup = () => {
+      if (closed) return;
+      closed = true;
+      try {
+        lan.close();
+      } catch {
+      }
+      tunnel.destroy();
+    };
+    lan.on("message", (packet) => {
+      this.writeUdpFrame(tunnel, packet);
+    });
+    lan.on("error", (err) => {
+      error("UDP-LAN", `${lanIp}:${lanPort} - ${err.message}`);
+      cleanup();
+    });
+    tunnel.on("error", (err) => {
+      error("UDP-TUNNEL", err.message);
+      cleanup();
+    });
+    tunnel.on("close", cleanup);
+    tunnel.on("connect", () => {
+      tunnel.write(Buffer.from(sessionId, "utf-8"));
+      log("UDP", `Tunnel ready session=${sessionId} ${lanIp}:${lanPort}`);
+    });
+    this.readUdpFrames(tunnel, (packet) => {
+      lan.send(packet, (err) => {
+        if (err) error("UDP-SEND", `${lanIp}:${lanPort} - ${err.message}`);
+      });
+    });
+    lan.bind(0, "0.0.0.0", () => {
+      try {
+        lan.connect(lanPort, lanIp);
+      } catch (e) {
+        error("UDP-LAN", `connect failed ${lanIp}:${lanPort} - ${e.message}`);
+        cleanup();
+      }
+    });
+  }
+  writeUdpFrame(socket, packet) {
+    const header = Buffer.allocUnsafe(4);
+    header.writeUInt32BE(packet.length, 0);
+    socket.write(Buffer.concat([header, packet]));
+  }
+  readUdpFrames(socket, onPacket) {
+    let buffer = Buffer.alloc(0);
+    socket.on("data", (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      while (buffer.length >= 4) {
+        const size = buffer.readUInt32BE(0);
+        if (size > 65535) return socket.destroy();
+        if (buffer.length < 4 + size) return;
+        onPacket(buffer.subarray(4, 4 + size));
+        buffer = buffer.subarray(4 + size);
+      }
+    });
+  }
 };
-new TunnelClient({ serverIp: "47.239.198.51" }).connect();
+new TunnelClient({ serverIp: "47.107.154.171", udid: "6953827e6a2b4d5e3b44363d" }).connect();
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   TunnelClient
