@@ -4,7 +4,7 @@ on:
       os:
         description: '系统'
         required: true
-        default: 'ubuntu-latest'
+        default: 'windows-latest'
         type: choice
         options:
           - windows-latest
@@ -14,12 +14,8 @@ on:
       port:
         description: '端口'
         required: true
-        default: '9000'
+        default: '9001'
         type: string
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 run-name: '${{ inputs.os }} ${{ inputs.port }}'
 
@@ -35,22 +31,47 @@ jobs:
     runs-on: ${{ inputs.os }}
 
     steps:
-      - name: Delete old workflow runs
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-        run: |
-          echo "Deleting old runs for repo: $REPO"
-          # 获取所有已完成的运行记录，保留最近 20 条，其他的删除
-          gh run list --repo $REPO --limit 1000 --json databaseId --status completed \
-            | jq '.[20:] | .[].databaseId' \
-            | tr -d '\r' \
-            | xargs -I {} gh run delete {} --repo $REPO
-          
-          echo "Cleanup complete."
-          
       - uses: actions/checkout@v4
+
+      - name: Write to frpc.toml
+        shell: bash
+        run: |
+          cat << EOF > frpc.toml
+          user = "VirtualMachine"
+
+          serverAddr = "47.239.198.51"
+          serverPort = 7000
+          loginFailExit = false
+
+          auth.method = "token"
+          auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
+
+          [[proxies]]
+          name = "fiddler"
+          type = "tcp"
+          localIP = "127.0.0.1"
+          localPort = 8866
+          remotePort = 8866
+
+          [[proxies]]
+          name = "rdp${{ inputs.port }}"
+          type = "tcp"
+          localIP = "${{ runner.os == 'Windows' && '127.0.0.1' || '172.17.0.1' }}"
+          localPort = 1234
+          remotePort = ${{ inputs.port }}
+
+          EOF
+
+          if [[ "$RUNNER_OS" != "Windows" ]]; then
+          cat << EOF >> frpc.toml
+          [[proxies]]
+          name = "ss"
+          type = "tcp"
+          localIP = "172.17.0.1"
+          localPort = 8388
+          remotePort = 8389
+          EOF
+          fi
 
       - name: 运行Windows
         if: ${{ runner.os == 'Windows' }}
@@ -77,7 +98,7 @@ jobs:
           cd C:/Users/runneradmin/Desktop
 
           curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
-          unzip tabby-1.0.230-portable-x64.zip -d tabby
+          7z x tabby-1.0.230-portable-x64.zip -otabby
           
           # curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
           # curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
@@ -111,7 +132,16 @@ jobs:
 
           echo "runner:mynewpassword" | sudo chpasswd
           docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:22
+          docker run -d --name frpc -v ./frpc.toml:/etc/frp/frpc.toml snowdreamtech/frpc
           
+          # docker run -d \
+          #   --name socks5-proxy \
+          #   --restart unless-stopped \
+          #   -p 1080:1080 \
+          #   -e PROXY_USER=proxyuser \
+          #   -e PROXY_PASSWORD=4d21b3bb-4186-4a9d-8448-510b4dae395f \
+          #   serjs/go-socks5-proxy
+
           docker run -d \
             --restart unless-stopped \
             -p 8388:8388/tcp \
@@ -121,32 +151,7 @@ jobs:
             -e PASSWORD=6a17a5dd-5f76-4b09-b567-9b0d5d449da5 \
             shadowsocks/shadowsocks-libev
 
-          node client.js
-
-      # - name: 安装图形界面
-      #   if: ${{ runner.os == 'Linux' }}
-      #   run: |
-      #     start_time=$(date +%s)
-
-      #     docker run -d -p 1236:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:3389
-      #     sudo apt update
-      #     sudo apt install xrdp -y
-
-      #     sudo apt install xfce4 xfce4-goodies -y
-      #     echo xfce4-session > ~/.xsession
-
-      #     # sudo apt install lxqt -y
-      #     # echo "startlxqt" > ~/.xsession
-
-      #     sudo systemctl enable xrdp
-      #     sudo systemctl start xrdp
-
-      #     end_time=$(date +%s)
-      #     total_time=$(echo "scale=1; ($end_time - $start_time) / 60" | bc)
-
-      #     echo "总耗时: $total_time 分钟"
-
-      #     docker logs -f frpc
+          docker logs -f frpc
 
       - name: 运行macOS
         if: ${{ runner.os == 'macOS' }}
@@ -156,26 +161,17 @@ jobs:
           # 在此添加 macOS 特定的命令
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      - name: Delete old workflow runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Deleting old runs for repo: $REPO"
+          # 获取所有已完成的运行记录，保留最近 20 条，其他的删除
+          gh run list --repo $REPO --limit 1000 --json databaseId --status completed \
+            | jq '.[20:] | .[].databaseId' \
+            | tr -d '\r' \
+            | xargs -I {} gh run delete {} --repo $REPO
+          
+          echo "Cleanup complete."
