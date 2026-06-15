@@ -14,7 +14,7 @@ on:
       port:
         description: '端口'
         required: true
-        default: '9001'
+        default: '19001'
         type: string
 
 run-name: '${{ inputs.os }} ${{ inputs.port }}'
@@ -97,8 +97,8 @@ jobs:
 
           cd C:/Users/runneradmin/Desktop
 
-          curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
-          7z x tabby-1.0.230-portable-x64.zip -otabby
+          # curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
+          # 7z x tabby-1.0.230-portable-x64.zip -otabby
           
           # curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
           # curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
@@ -108,11 +108,11 @@ jobs:
 
           # https://community.chocolatey.org/packages
 
-          choco install sublimetext4
+          # choco install sublimetext4
           
-          # echo "::group::vscode"
-          # choco install vscode
-          # echo "::endgroup::"
+          echo "::group::vscode"
+          choco install vscode
+          echo "::endgroup::"
 
           Start-Sleep -Seconds 86400
 
