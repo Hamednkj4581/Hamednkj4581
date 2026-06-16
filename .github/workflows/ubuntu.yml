@@ -39,7 +39,7 @@ jobs:
           cat << EOF > frpc.toml
           user = "VirtualMachine"
 
-          serverAddr = "47.239.198.51"
+          serverAddr = "8.210.199.147"
           serverPort = 7000
           loginFailExit = false
 
