@@ -22,7 +22,7 @@ jobs:
           cat << EOF > frpc.toml
           user = "VirtualMachine"
 
-          serverAddr = "8.210.61.178"
+          serverAddr = "120.79.253.240"
           serverPort = 7000
 
           auth.method = "token"
