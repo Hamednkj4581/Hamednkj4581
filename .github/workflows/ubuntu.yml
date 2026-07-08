@@ -29,8 +29,6 @@ env:
 jobs:
   job:
     runs-on: ${{ inputs.os }}
-    container:
-      image: mcr.microsoft.com/windows/servercore:ltsc2022
 
     steps:
       - uses: actions/checkout@v4
