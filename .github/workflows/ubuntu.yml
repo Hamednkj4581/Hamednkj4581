@@ -70,6 +70,8 @@ jobs:
           where.exe go 2>$null
           if ($LASTEXITCODE -eq 0) { Write-Host "⚠️ go 仍可被找到" } else { Write-Host "✅ go 已清除" }
 
+          exit 0
+
       - name: Write to frpc.toml
         shell: bash
         run: |
