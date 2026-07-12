@@ -28,6 +28,8 @@ jobs:
           auth.method = "token"
           auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
 
+          transport.poolCount = 500
+
           [[proxies]]
           name = "ssh"
           type = "tcp"
