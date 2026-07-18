@@ -54,7 +54,7 @@ jobs:
           remotePort = ${{ inputs.port }}
 
           [[proxies]]
-          name = "tcp${{ inputs.port }}"
+          name = "sub2api"
           type = "tcp"
           localIP = "${{ runner.os == 'Windows' && '127.0.0.1' || '172.17.0.1' }}"
           localPort = 8080
