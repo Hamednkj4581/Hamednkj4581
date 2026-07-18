@@ -33,45 +33,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Purge Go completely
-        shell: pwsh
-        run: |
-          # 1. 删除 hostedtoolcache 里的 go
-          if (Test-Path "$env:AGENT_TOOLSDIRECTORY\go") {
-            Remove-Item -Recurse -Force "$env:AGENT_TOOLSDIRECTORY\go"
-          }
-      
-          # 2. 删除 Chocolatey 安装的 Go（如果有）
-          if (Get-Command choco -ErrorAction SilentlyContinue) {
-            choco uninstall golang -y --force 2>$null
-          }
-          if (Test-Path "C:\Program Files\Go") {
-            Remove-Item -Recurse -Force "C:\Program Files\Go"
-          }
-      
-          # 3. 删除用户级 GOPATH / 模块缓存
-          if (Test-Path "$env:USERPROFILE\go") {
-            Remove-Item -Recurse -Force "$env:USERPROFILE\go"
-          }
-      
-          # 4. 清掉当前 job 后续 step 会用到的环境变量
-          #    直接写空到 GITHUB_ENV 不会移除变量，需要用 remove 语法
-          "GOROOT=" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "GOPATH=" | Out-File -FilePath $env:GITHUB_ENV -Append
-      
-          # 5. 从 PATH 中过滤掉包含 go 的条目，重写 GITHUB_PATH
-          #    注意：GITHUB_PATH 是"追加"机制，没法删除已注入的旧 PATH 条目，
-          #    所以要在本 step 内用 $env:PATH 重新赋值，并写回后续 step 用的 PATH 文件
-          $newPath = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'go' }) -join ';'
-          $env:PATH = $newPath
-          echo "PATH=$newPath" | Out-File -FilePath $env:GITHUB_ENV -Append
-      
-          # 验证
-          where.exe go 2>$null
-          if ($LASTEXITCODE -eq 0) { Write-Host "⚠️ go 仍可被找到" } else { Write-Host "✅ go 已清除" }
-
-          exit 0
-
       - name: Write to frpc.toml
         shell: bash
         run: |
