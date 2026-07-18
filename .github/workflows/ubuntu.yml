@@ -47,31 +47,19 @@ jobs:
           auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
 
           [[proxies]]
-          name = "fiddler"
-          type = "tcp"
-          localIP = "127.0.0.1"
-          localPort = 8866
-          remotePort = 8866
-
-          [[proxies]]
           name = "rdp${{ inputs.port }}"
           type = "tcp"
           localIP = "${{ runner.os == 'Windows' && '127.0.0.1' || '172.17.0.1' }}"
           localPort = 1234
           remotePort = ${{ inputs.port }}
 
-          EOF
-
-          if [[ "$RUNNER_OS" != "Windows" ]]; then
-          cat << EOF >> frpc.toml
           [[proxies]]
-          name = "ss"
+          name = "tcp${{ inputs.port }}"
           type = "tcp"
-          localIP = "172.17.0.1"
-          localPort = 8388
-          remotePort = 8389
+          localIP = "${{ runner.os == 'Windows' && '127.0.0.1' || '172.17.0.1' }}"
+          localPort = 8080
+          remotePort = 8080
           EOF
-          fi
 
       - name: 运行Windows
         if: ${{ runner.os == 'Windows' }}
