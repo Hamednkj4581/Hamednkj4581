@@ -33,34 +33,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Write to frpc.toml
-        shell: bash
-        run: |
-          cat << EOF > frpc.toml
-          user = "VirtualMachine"
-
-          serverAddr = "120.79.253.240"
-          serverPort = 7000
-          loginFailExit = false
-
-          auth.method = "token"
-          auth.token = "2f1d3a0e-9b64-4b91-b76b-8cb4a2f2e5d3"
-
-          [[proxies]]
-          name = "rdp${{ inputs.port }}"
-          type = "tcp"
-          localIP = "${{ runner.os == 'Windows' && '127.0.0.1' || '172.17.0.1' }}"
-          localPort = 1234
-          remotePort = ${{ inputs.port }}
-
-          [[proxies]]
-          name = "sub2api"
-          type = "tcp"
-          localIP = "${{ runner.os == 'Windows' && '127.0.0.1' || '172.17.0.1' }}"
-          localPort = 8080
-          remotePort = 18080
-          EOF
-
       - name: 运行Windows
         if: ${{ runner.os == 'Windows' }}
         run: |
@@ -81,7 +53,7 @@ jobs:
           net start termservice
 
           netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
-          Start-Process -FilePath "frpc" -ArgumentList "-c frpc.toml" -NoNewWindow
+          Start-Process -FilePath "tunnel-client-windows" -ArgumentList "-config client.toml" -NoNewWindow
 
           cd C:/Users/runneradmin/Desktop
 
@@ -120,16 +92,7 @@ jobs:
 
           echo "runner:mynewpassword" | sudo chpasswd
           docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:22
-          docker run -d --name frpc -v ./frpc.toml:/etc/frp/frpc.toml snowdreamtech/frpc
           
-          # docker run -d \
-          #   --name socks5-proxy \
-          #   --restart unless-stopped \
-          #   -p 1080:1080 \
-          #   -e PROXY_USER=proxyuser \
-          #   -e PROXY_PASSWORD=4d21b3bb-4186-4a9d-8448-510b4dae395f \
-          #   serjs/go-socks5-proxy
-
           docker run -d \
             --restart unless-stopped \
             -p 8388:8388/tcp \
@@ -139,7 +102,7 @@ jobs:
             -e PASSWORD=6a17a5dd-5f76-4b09-b567-9b0d5d449da5 \
             shadowsocks/shadowsocks-libev
 
-          docker logs -f frpc
+          tunnel-client-linux
 
       - name: 运行macOS
         if: ${{ runner.os == 'macOS' }}
