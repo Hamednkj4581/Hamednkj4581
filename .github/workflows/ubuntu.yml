@@ -53,7 +53,7 @@ jobs:
           net start termservice
 
           netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
-          Start-Process -FilePath "tunnel-client-windows" -ArgumentList "-config client.toml" -NoNewWindow
+          Start-Process -FilePath "tunnel-client-windows" -ArgumentList "-config client.yaml" -NoNewWindow
 
           cd C:/Users/runneradmin/Desktop
 
@@ -102,7 +102,8 @@ jobs:
             -e PASSWORD=6a17a5dd-5f76-4b09-b567-9b0d5d449da5 \
             shadowsocks/shadowsocks-libev
 
-          tunnel-client-linux
+          chmod +x tunnel-client-linux
+          ./tunnel-client-linux
 
       - name: 运行macOS
         if: ${{ runner.os == 'macOS' }}
