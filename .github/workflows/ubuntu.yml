@@ -70,9 +70,9 @@ jobs:
 
           # choco install sublimetext4
           
-          echo "::group::vscode"
-          choco install vscode
-          echo "::endgroup::"
+          # echo "::group::vscode"
+          # choco install vscode
+          # echo "::endgroup::"
 
           Start-Sleep -Seconds 86400
 
