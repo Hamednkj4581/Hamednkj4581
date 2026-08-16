@@ -214,7 +214,7 @@ jobs:
               ("direct-access-port", "21118"),
               ("enable-keyboard", "Y"),
               ("enable-clipboard", "Y"),
-              ("stop-service", "N"),
+              ("stop-service", "Y"),
               ("allow-remote-config-modification", "Y"),
           ):
               if re.search(rf"(?m)^{re.escape(key)}\s*=", body):
@@ -226,37 +226,12 @@ jobs:
           os.system("sudo cp %r /var/root/Library/Preferences/com.carriez.RustDesk/RustDesk2.toml" % path)
           PY
 
-          RD="/Applications/RustDesk.app/Contents/MacOS/RustDesk"
-          SVC="/Applications/RustDesk.app/Contents/MacOS/service"
-          if [ -x "$SVC" ]; then
-            python3 - <<'PY'
-          import textwrap
-          open("/tmp/rd-daemon.plist", "w").write(textwrap.dedent("""\
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>Label</key><string>com.carriez.RustDesk_service</string>
-            <key>KeepAlive</key><true/>
-            <key>RunAtLoad</key><true/>
-            <key>ProgramArguments</key>
-            <array>
-              <string>/Applications/RustDesk.app/Contents/MacOS/service</string>
-            </array>
-            <key>WorkingDirectory</key><string>/Applications/RustDesk.app/Contents/MacOS/</string>
-          </dict></plist>
-          """))
-          PY
-            sudo cp /tmp/rd-daemon.plist /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
-            sudo chown root:wheel /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
-            sudo launchctl bootout system/com.carriez.RustDesk_service 2>/dev/null || true
-            sudo launchctl bootstrap system /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || sudo launchctl load -w /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || true
-          fi
           launchctl bootout "gui/$(id -u)/com.carriez.RustDesk_server" 2>/dev/null || true
-          sudo rm -f /Library/LaunchAgents/com.carriez.RustDesk_server.plist
+          sudo launchctl bootout system/com.carriez.RustDesk_service 2>/dev/null || true
+          sudo rm -f /Library/LaunchAgents/com.carriez.RustDesk_server.plist /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
 
           open /Applications/RustDesk.app || true
-          sleep 6
-          "$RD" --password "$RUSTDESK_PASSWORD" || true
+          sleep 8
 
           mkdir -p images
           python3 - <<'PY'
@@ -370,19 +345,9 @@ jobs:
           sleep 3
           open /Applications/RustDesk.app || true
           sleep 6
-          "$RD" --password "$RUSTDESK_PASSWORD" || true
           osascript -e 'tell application "System Settings" to quit' >/dev/null 2>&1 || true
           osascript -e 'tell application "RustDesk" to activate' >/dev/null 2>&1 || true
           sleep 2
-
-          ID=""
-          for i in {1..15}; do
-            ID=$("$RD" --get-id 2>/dev/null | tr -d '\r' | tail -n 1)
-            if [ -n "$ID" ] && [ "$ID" != "0" ]; then
-              break
-            fi
-            sleep 2
-          done
 
           screencapture -x images/rustdesk.png || true
           OTP=$(tesseract images/rustdesk.png stdout 2>/dev/null | python3 -c '
@@ -392,6 +357,14 @@ jobs:
           pws = [p for p in re.findall(r"\b[a-z0-9]{6}\b", text) if p not in skip]
           print(pws[0] if pws else "")
           ' || true)
+          ID=$(python3 - <<'PY'
+          import os, re
+          p = os.path.expanduser("~/Library/Preferences/com.carriez.RustDesk/RustDesk.toml")
+          text = open(p, encoding="utf-8", errors="replace").read() if os.path.exists(p) else ""
+          m = re.search(r"(?m)^id\s*=\s*'([^']+)'", text) or re.search(r"(?m)^id\s*=\s*\"([^\"]+)\"", text)
+          print(m.group(1) if m else "")
+          PY
+          )
 
           cat > /tmp/rd-proxy.py <<'PY'
           import select, socket, threading
