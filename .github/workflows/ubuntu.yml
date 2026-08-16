@@ -403,14 +403,22 @@ jobs:
           osascript -e 'tell application "RustDesk" to activate' >/dev/null 2>&1 || true
           sleep 4
 
-          screencapture -x images/rustdesk.png || true
-          OTP=$(tesseract images/rustdesk.png stdout 2>/dev/null | python3 -c '
+          OTP=""
+          for i in 1 2 3 4 5 6 7 8; do
+            osascript -e 'tell application "RustDesk" to activate' >/dev/null 2>&1 || true
+            sleep 2
+            screencapture -x images/rustdesk.png || true
+            OTP=$(tesseract images/rustdesk.png stdout 2>/dev/null | python3 -c '
           import sys, re
           text = sys.stdin.read().lower()
-          skip = {"remote", "record", "screen", "config", "button", "window", "system"}
+          skip = {"remote", "record", "screen", "config", "button", "window", "system", "server"}
           pws = [p for p in re.findall(r"\b[a-z0-9]{6}\b", text) if p not in skip]
           print(pws[0] if pws else "")
           ' || true)
+            if [ -n "$OTP" ]; then
+              break
+            fi
+          done
 
           cat > /tmp/rd-proxy.py <<'PY'
           import select, socket, threading
@@ -453,13 +461,13 @@ jobs:
 
           echo "========================================"
           echo "RustDesk 直连 ID: 47.107.154.171:9999"
-          echo "一次性密码: ${OTP:-见截图}"
+          echo "一次性密码: $OTP"
           echo "不要填 mynewpassword，只用上面的一次性密码"
           echo "========================================"
           {
             echo "## RustDesk"
             echo "- **直连 ID:** \`47.107.154.171:9999\`"
-            echo "- **一次性密码:** \`${OTP:-见截图}\`"
+            echo "- **一次性密码:** \`$OTP\`"
             echo "- 不要用固定密码 mynewpassword"
           } >> "$GITHUB_STEP_SUMMARY"
 
