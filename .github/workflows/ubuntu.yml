@@ -398,20 +398,10 @@ jobs:
           launchctl kickstart -k "gui/${UID_NUM}/com.carriez.RustDesk_server" 2>/dev/null || "$RD" --server >/tmp/rd-server.log 2>&1 &
           sleep 2
           open /Applications/RustDesk.app || true
-          sleep 6
-          "$RD" --password "$RUSTDESK_PASSWORD" || true
+          sleep 8
           osascript -e 'tell application "System Settings" to quit' >/dev/null 2>&1 || true
           osascript -e 'tell application "RustDesk" to activate' >/dev/null 2>&1 || true
-          sleep 2
-
-          ID=""
-          for i in {1..15}; do
-            ID=$("$RD" --get-id 2>/dev/null | tr -d '\r' | tail -n 1)
-            if [ -n "$ID" ] && [ "$ID" != "0" ]; then
-              break
-            fi
-            sleep 2
-          done
+          sleep 4
 
           screencapture -x images/rustdesk.png || true
           OTP=$(tesseract images/rustdesk.png stdout 2>/dev/null | python3 -c '
@@ -464,14 +454,13 @@ jobs:
           echo "========================================"
           echo "RustDesk 直连 ID: 47.107.154.171:9999"
           echo "一次性密码: ${OTP:-见截图}"
-          echo "固定密码: $RUSTDESK_PASSWORD"
-          echo "公共 ID: ${ID:-FAILED}"
+          echo "不要填 mynewpassword，只用上面的一次性密码"
           echo "========================================"
           {
             echo "## RustDesk"
             echo "- **直连 ID:** \`47.107.154.171:9999\`"
             echo "- **一次性密码:** \`${OTP:-见截图}\`"
-            echo "- **固定密码:** \`$RUSTDESK_PASSWORD\`"
+            echo "- 不要用固定密码 mynewpassword"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 上传macOS截图
