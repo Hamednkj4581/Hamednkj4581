@@ -299,33 +299,41 @@ jobs:
                   if w <= 0 or h <= 0:
                       continue
                   rows.append((text.lower(), l, t, w, h, text))
+              front = ""
+              try:
+                  front = subprocess.check_output(
+                      ["osascript", "-e", 'tell application "System Events" to get name of first application process whose frontmost is true'],
+                      text=True,
+                      timeout=5,
+                  ).strip().lower()
+              except Exception:
+                  pass
               clicked = False
-              for low, l, t, w, h, text in rows:
-                  if low in skip:
-                      continue
-                  if low in buttons or any(b in low for b in buttons):
-                      x, y = l + w // 2, t + h // 2
-                      print("click", text, x, y)
-                      subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
-                      clicked = True
-                      break
+              if "system" in front:
+                  for low, l, t, w, h, text in rows:
+                      if "rustdesk" in low:
+                          x, y = l + w + 72, t + h // 2
+                          print("toggle", text, x, y)
+                          subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
+                          clicked = True
+                          break
+              else:
+                  for low, l, t, w, h, text in rows:
+                      if "recording" in low:
+                          x, y = l + w // 2, t + h + 48
+                          print("configure-below", text, x, y)
+                          subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
+                          clicked = True
+                          break
               if not clicked:
-                  front = ""
-                  try:
-                      front = subprocess.check_output(
-                          ["osascript", "-e", 'tell application "System Events" to get name of first application process whose frontmost is true'],
-                          text=True,
-                          timeout=5,
-                      ).strip().lower()
-                  except Exception:
-                      pass
-                  if "system" in front:
-                      for low, l, t, w, h, text in rows:
-                          if "rustdesk" in low:
-                              x, y = l + w + 72, t + h // 2
-                              print("toggle", text, x, y)
-                              subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
-                              break
+                  for low, l, t, w, h, text in rows:
+                      if low in skip:
+                          continue
+                      if low in buttons or any(b in low for b in buttons):
+                          x, y = l + w // 2, t + h // 2
+                          print("click", text, x, y)
+                          subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
+                          break
               time.sleep(1)
           PY
 
