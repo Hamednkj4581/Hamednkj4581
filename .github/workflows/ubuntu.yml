@@ -9,8 +9,9 @@ on:
         options:
           - windows-latest
           - ubuntu-latest
-          - macos-latest
           - macos-15
+          - macos-26
+          - macos-latest
       
       port:
         description: '端口'
@@ -114,7 +115,8 @@ jobs:
           RUSTDESK_PASSWORD: mynewpassword
         run: |
           sudo systemsetup -settimezone Asia/Shanghai || true
-          brew install displayplacer tesseract
+          brew install displayplacer || true
+          brew install tesseract || true
           brew install --cask rustdesk
           xattr -cr /Applications/RustDesk.app || true
 
@@ -129,18 +131,21 @@ jobs:
           if not os.path.exists(db):
               raise SystemExit(0)
           now = int(time.time())
-          con = sqlite3.connect(db)
-          clients = [
-              (0, "com.carriez.RustDesk"),
-              (1, "/Applications/RustDesk.app/Contents/MacOS/RustDesk"),
-          ]
-          for svc in ("kTCCServiceScreenCapture", "kTCCServiceAccessibility", "kTCCServiceListenEvent", "kTCCServicePostEvent"):
-              for ctype, client in clients:
-                  con.execute(
-                      "INSERT OR REPLACE INTO access (service,client,client_type,auth_value,auth_reason,auth_version,indirect_object_identifier,flags,last_modified) VALUES (?,?,?,2,4,1,'UNUSED',0,?)",
-                      (svc, client, ctype, now),
-                  )
-          con.commit()
+          try:
+              con = sqlite3.connect(db)
+              clients = [
+                  (0, "com.carriez.RustDesk"),
+                  (1, "/Applications/RustDesk.app/Contents/MacOS/RustDesk"),
+              ]
+              for svc in ("kTCCServiceScreenCapture", "kTCCServiceAccessibility", "kTCCServiceListenEvent", "kTCCServicePostEvent"):
+                  for ctype, client in clients:
+                      con.execute(
+                          "INSERT OR REPLACE INTO access (service,client,client_type,auth_value,auth_reason,auth_version,indirect_object_identifier,flags,last_modified) VALUES (?,?,?,2,4,1,'UNUSED',0,?)",
+                          (svc, client, ctype, now),
+                      )
+              con.commit()
+          except Exception as e:
+              print("TCC skip:", e)
           PY
           sudo killall tccd 2>/dev/null || true
 
@@ -165,7 +170,7 @@ jobs:
           PY
 
           RD="/Applications/RustDesk.app/Contents/MacOS/RustDesk"
-          open -a RustDesk
+          open /Applications/RustDesk.app
           sleep 8
           "$RD" --password "$RUSTDESK_PASSWORD" || true
 
@@ -186,7 +191,7 @@ jobs:
           skip = {"remote", "record", "screen", "config", "button", "window", "system"}
           pws = [p for p in re.findall(r"\b[a-z0-9]{6}\b", text) if p not in skip]
           print(pws[0] if pws else "")
-          ')
+          ' || true)
 
           cat > /tmp/rd-proxy.py <<'PY'
           import select, socket, threading
