@@ -151,8 +151,10 @@ jobs:
               cols = {r[1] for r in con.execute("PRAGMA table_info(access)")}
               clients = [
                   (0, "com.carriez.RustDesk"),
+                  (0, "com.carriez.rustdesk"),
                   (1, "/Applications/RustDesk.app"),
                   (1, "/Applications/RustDesk.app/Contents/MacOS/RustDesk"),
+                  (1, "/Applications/RustDesk.app/Contents/MacOS/service"),
                   (1, "/opt/homebrew/bin/cliclick"),
                   (1, "/usr/local/bin/cliclick"),
                   (1, "/usr/bin/osascript"),
@@ -225,20 +227,55 @@ jobs:
           PY
 
           RD="/Applications/RustDesk.app/Contents/MacOS/RustDesk"
+          SVC="/Applications/RustDesk.app/Contents/MacOS/service"
+          UID_NUM=$(id -u)
+
+          sudo tee /Library/LaunchDaemons/com.carriez.RustDesk_service.plist >/dev/null <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.carriez.RustDesk_service</string>
+  <key>KeepAlive</key><true/>
+  <key>RunAtLoad</key><true/>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
+    <string>--service</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Applications/RustDesk.app/Contents/MacOS/</string>
+</dict></plist>
+EOF
+          sudo tee /Library/LaunchAgents/com.carriez.RustDesk_server.plist >/dev/null <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.carriez.RustDesk_server</string>
+  <key>LimitLoadToSessionType</key>
+  <array><string>Aqua</string><string>LoginWindow</string></array>
+  <key>KeepAlive</key><true/>
+  <key>RunAtLoad</key><true/>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
+    <string>--server</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Applications/RustDesk.app/Contents/MacOS/</string>
+  <key>ProcessType</key><string>Interactive</string>
+</dict></plist>
+EOF
+          sudo chown root:wheel /Library/LaunchDaemons/com.carriez.RustDesk_service.plist /Library/LaunchAgents/com.carriez.RustDesk_server.plist
+          sudo launchctl bootout system/com.carriez.RustDesk_service 2>/dev/null || true
+          sudo launchctl bootstrap system /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || sudo launchctl load -w /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || true
+          launchctl bootout gui/$UID_NUM/com.carriez.RustDesk_server 2>/dev/null || true
+          launchctl bootstrap gui/$UID_NUM /Library/LaunchAgents/com.carriez.RustDesk_server.plist || launchctl load -w /Library/LaunchAgents/com.carriez.RustDesk_server.plist || true
+          if [ -x "$SVC" ]; then sudo "$SVC" >/tmp/rd-service.log 2>&1 & fi
+          "$RD" --server >/tmp/rd-server.log 2>&1 &
+
           open /Applications/RustDesk.app || true
           sleep 6
           pgrep -x RustDesk >/dev/null || "$RD" >/tmp/rd-gui.log 2>&1 &
           sleep 2
           "$RD" --password "$RUSTDESK_PASSWORD" || true
-
-          python3 - <<'PY'
-          import subprocess
-          rd = "/Applications/RustDesk.app/Contents/MacOS/RustDesk"
-          try:
-              subprocess.run(["sudo", rd, "--install-service"], timeout=20)
-          except Exception as e:
-              print("install-service:", e)
-          PY
 
           mkdir -p images
           python3 - <<'PY'
@@ -246,6 +283,7 @@ jobs:
           os.makedirs("images", exist_ok=True)
           buttons = ("configure", "install", "allow", "reopen", "system settings")
           skip = {"connect", "remote", "cancel", "close"}
+          toggled = False
 
           def ax_click_allow():
               script = '''
@@ -256,11 +294,8 @@ jobs:
                   if exists (button "Allow" of window 1) then
                     click button "Allow" of window 1
                   end if
-                  if exists (button "Configure" of window 1) then
-                    click button "Configure" of window 1
-                  end if
-                  if exists (button "Install" of window 1) then
-                    click button "Install" of window 1
+                  if exists (button "Quit and Reopen" of window 1) then
+                    click button "Quit and Reopen" of window 1
                   end if
                   if exists (button "Open System Settings" of window 1) then
                     click button "Open System Settings" of window 1
@@ -309,14 +344,26 @@ jobs:
               except Exception:
                   pass
               clicked = False
+              for low, l, t, w, h, text in rows:
+                  if "reopen" in low:
+                      x, y = l + w // 2, t + h // 2
+                      print("click", text, x, y)
+                      subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
+                      clicked = True
+                      break
+              if clicked:
+                  time.sleep(1)
+                  continue
               if "system" in front:
-                  for low, l, t, w, h, text in rows:
-                      if "rustdesk" in low:
-                          x, y = l + w + 72, t + h // 2
-                          print("toggle", text, x, y)
-                          subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
-                          clicked = True
-                          break
+                  if not toggled:
+                      for low, l, t, w, h, text in rows:
+                          if "rustdesk" in low:
+                              x, y = l + w + 72, t + h // 2
+                              print("toggle", text, x, y)
+                              subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
+                              toggled = True
+                              clicked = True
+                              break
               else:
                   for low, l, t, w, h, text in rows:
                       if "recording" in low:
@@ -337,6 +384,16 @@ jobs:
               time.sleep(1)
           PY
 
+          osascript -e 'tell application "RustDesk" to quit' >/dev/null 2>&1 || true
+          killall RustDesk 2>/dev/null || true
+          sudo killall RustDesk 2>/dev/null || true
+          sleep 3
+          sudo launchctl kickstart -k system/com.carriez.RustDesk_service 2>/dev/null || true
+          launchctl kickstart -k "gui/${UID_NUM}/com.carriez.RustDesk_server" 2>/dev/null || "$RD" --server >/tmp/rd-server.log 2>&1 &
+          sleep 2
+          open /Applications/RustDesk.app || true
+          sleep 6
+          "$RD" --password "$RUSTDESK_PASSWORD" || true
           osascript -e 'tell application "System Settings" to quit' >/dev/null 2>&1 || true
           osascript -e 'tell application "RustDesk" to activate' >/dev/null 2>&1 || true
           sleep 2
