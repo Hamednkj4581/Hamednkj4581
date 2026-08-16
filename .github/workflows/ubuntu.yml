@@ -306,6 +306,9 @@ jobs:
                   if exists (button "Open System Settings" of window 1) then
                     click button "Open System Settings" of window 1
                   end if
+                  if exists (button "Reopen" of window 1) then
+                    click button "Reopen" of window 1
+                  end if
                 end tell
               end try
             end repeat
@@ -413,6 +416,7 @@ jobs:
               "connect", "desktop", "finder", "safari", "launch", "ready", "please", "faster",
               "enter", "oops", "recent", "session", "sessions", "control", "rustdesk", "password",
               "one", "time", "your", "setup", "help", "edit", "view", "mail", "music",
+              "reopen", "report", "ignore", "cancel", "please",
           }
           skip.update(days)
           skip.update(months)
@@ -459,8 +463,38 @@ jobs:
               ranked.sort()
               return ranked[0][2] if ranked else ""
 
+          def dismiss_crash():
+              script = '''
+          tell application "System Events"
+            repeat with p in (every process)
+              try
+                tell p
+                  if exists (button "Reopen" of window 1) then
+                    click button "Reopen" of window 1
+                  end if
+                end tell
+              end try
+            end repeat
+          end tell
+          '''
+              try:
+                  subprocess.run(["osascript", "-e", script], timeout=8, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+              except Exception:
+                  pass
+
+          def rustdesk_running():
+              try:
+                  subprocess.check_output(["pgrep", "-x", "RustDesk"], stderr=subprocess.DEVNULL)
+                  return True
+              except Exception:
+                  return False
+
           otp = ""
-          for i in range(8):
+          for i in range(12):
+              dismiss_crash()
+              if not rustdesk_running():
+                  subprocess.call(["open", "/Applications/RustDesk.app"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                  time.sleep(5)
               subprocess.call(
                   ["osascript", "-e", 'tell application "RustDesk" to activate'],
                   stdout=subprocess.DEVNULL,
@@ -489,8 +523,10 @@ jobs:
                   )
               except Exception:
                   pass
-              otp = from_tsv(tsv) or from_text(txt)
-              print("otp-try", i + 1, otp)
+              low = txt.lower()
+              crashed = "unexpectedly" in low or "generating" in low
+              otp = "" if crashed else (from_tsv(tsv) or from_text(txt))
+              print("otp-try", i + 1, otp, "crashed" if crashed else "ok")
               if otp:
                   break
           open("/tmp/rd-otp.txt", "w").write(otp)
