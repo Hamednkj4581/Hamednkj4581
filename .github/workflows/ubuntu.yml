@@ -155,10 +155,6 @@ jobs:
                   (1, "/Applications/RustDesk.app/Contents/MacOS/RustDesk"),
                   (1, "/opt/homebrew/bin/cliclick"),
                   (1, "/usr/local/bin/cliclick"),
-                  (1, "/bin/bash"),
-                  (1, "/bin/zsh"),
-                  (1, "/usr/bin/screencapture"),
-                  (1, "/usr/bin/python3"),
               ]
               svcs = (
                   "kTCCServiceScreenCapture",
@@ -252,9 +248,7 @@ jobs:
 
           for i in range(8):
               shot = "images/grant.png"
-              subprocess.call(["screencapture", "-x", shot], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-              subprocess.call(["cliclick", "kp:return"])
-              subprocess.call(["cliclick", "c:1040,620"])
+              subprocess.call(["screencapture", "-C", "-x", shot], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
               try:
                   out = subprocess.check_output(["tesseract", shot, "stdout", "tsv"], text=True, stderr=subprocess.DEVNULL)
               except Exception:
