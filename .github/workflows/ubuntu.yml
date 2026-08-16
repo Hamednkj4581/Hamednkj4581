@@ -117,6 +117,7 @@ jobs:
           sudo systemsetup -settimezone Asia/Shanghai || true
           brew install displayplacer cliclick tesseract || true
           brew install --cask rustdesk
+          set +e
           xattr -cr /Applications/RustDesk.app || true
 
           display_id=$(displayplacer list 2>/dev/null | grep -o 'Persistent screen id: [^ ]*' | awk '{print $4}' | head -n 1)
@@ -223,19 +224,20 @@ jobs:
           PY
 
           RD="/Applications/RustDesk.app/Contents/MacOS/RustDesk"
+          open /Applications/RustDesk.app || true
+          sleep 6
+          pgrep -x RustDesk >/dev/null || "$RD" >/tmp/rd-gui.log 2>&1 &
+          sleep 2
+          "$RD" --password "$RUSTDESK_PASSWORD" || true
+
           python3 - <<'PY'
-          import subprocess, os
+          import subprocess
           rd = "/Applications/RustDesk.app/Contents/MacOS/RustDesk"
           try:
               subprocess.run(["sudo", rd, "--install-service"], timeout=20)
           except Exception as e:
               print("install-service:", e)
           PY
-          sudo "$RD" --service >/tmp/rd-service.log 2>&1 &
-
-          open /Applications/RustDesk.app
-          sleep 6
-          "$RD" --password "$RUSTDESK_PASSWORD" || true
 
           mkdir -p images
           python3 - <<'PY'
@@ -317,8 +319,10 @@ jobs:
 
           killall RustDesk 2>/dev/null || true
           sleep 2
-          open /Applications/RustDesk.app
-          sleep 6
+          open /Applications/RustDesk.app || true
+          sleep 4
+          pgrep -x RustDesk >/dev/null || "$RD" >/tmp/rd-gui.log 2>&1 &
+          sleep 4
           "$RD" --password "$RUSTDESK_PASSWORD" || true
 
           ID=""
