@@ -132,20 +132,40 @@ jobs:
           sudo dscl . -passwd /Users/runner mynewpassword || true
           sudo sysadminctl -resetPasswordFor runner -newPassword mynewpassword || true
 
-          # 开启屏幕共享 / 远程管理 (VNC :5900)，对齐 Windows RDP
+          # 屏幕共享 和 远程管理不能同时开，否则客户端会报「不被允许」
           KICKSTART="/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart"
-          sudo "$KICKSTART" -configure -allowAccessFor -allUsers -privs -all
-          sudo "$KICKSTART" -configure -access -on -privs -all
-          sudo "$KICKSTART" -configure -clientopts -setvnclegacy -vnclegacy yes
+          sudo "$KICKSTART" -deactivate -stop || true
+          sudo launchctl bootout system /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+          sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+          sleep 1
+
           python3 - <<'PY' | sudo tee /Library/Preferences/com.apple.VNCSettings.txt >/dev/null
           k = bytes.fromhex("1734516E8BA8C5E2FF1C39567390ADCA")
           p = b"mynewpassword"[:8]
           print("".join("%02X" % (k[i] ^ (p[i] if i < len(p) else 0)) for i in range(len(k))))
           PY
+          sudo chmod 600 /Library/Preferences/com.apple.VNCSettings.txt
+
+          # 只开远程管理 + 传统 VNC（给 RealVNC / TigerVNC 用）
+          sudo "$KICKSTART" -configure -allowAccessFor -allUsers -privs -all
+          sudo "$KICKSTART" -configure -access -on -privs -all
+          sudo "$KICKSTART" -configure -clientopts -setvnclegacy -vnclegacy yes
           sudo "$KICKSTART" -restart -agent -console
           sudo "$KICKSTART" -activate
-          sudo launchctl enable system/com.apple.screensharing || true
-          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
+          sleep 2
+
+          if ! lsof -nP -iTCP:5900 -sTCP:LISTEN >/dev/null; then
+            echo "Remote Management 未监听 5900，改开屏幕共享"
+            sudo "$KICKSTART" -deactivate -stop || true
+            sleep 1
+            sudo launchctl enable system/com.apple.screensharing || true
+            sudo launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || \
+              sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist
+            sleep 2
+          fi
+
+          echo "==== VNC 5900 ===="
+          lsof -nP -iTCP:5900 -sTCP:LISTEN || echo "WARNING: 5900 仍未监听"
 
           # 1234 -> VNC 5900（对齐 Windows 1234->3389、Linux 1234->22）
           python3 - <<'PY' &
