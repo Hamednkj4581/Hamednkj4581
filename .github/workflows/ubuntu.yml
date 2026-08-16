@@ -228,10 +228,10 @@ jobs:
 
           RD="/Applications/RustDesk.app/Contents/MacOS/RustDesk"
           SVC="/Applications/RustDesk.app/Contents/MacOS/service"
-          UID_NUM=$(id -u)
-          python3 - <<'PY'
+          if [ -x "$SVC" ]; then
+            python3 - <<'PY'
           import textwrap
-          daemon = textwrap.dedent("""\
+          open("/tmp/rd-daemon.plist", "w").write(textwrap.dedent("""\
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
@@ -240,47 +240,22 @@ jobs:
             <key>RunAtLoad</key><true/>
             <key>ProgramArguments</key>
             <array>
-              <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
-              <string>--service</string>
+              <string>/Applications/RustDesk.app/Contents/MacOS/service</string>
             </array>
             <key>WorkingDirectory</key><string>/Applications/RustDesk.app/Contents/MacOS/</string>
           </dict></plist>
-          """)
-          agent = textwrap.dedent("""\
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0"><dict>
-            <key>Label</key><string>com.carriez.RustDesk_server</string>
-            <key>LimitLoadToSessionType</key>
-            <array><string>Aqua</string><string>LoginWindow</string></array>
-            <key>KeepAlive</key><true/>
-            <key>RunAtLoad</key><true/>
-            <key>ProgramArguments</key>
-            <array>
-              <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
-              <string>--server</string>
-            </array>
-            <key>WorkingDirectory</key><string>/Applications/RustDesk.app/Contents/MacOS/</string>
-            <key>ProcessType</key><string>Interactive</string>
-          </dict></plist>
-          """)
-          open("/tmp/rd-daemon.plist", "w").write(daemon)
-          open("/tmp/rd-agent.plist", "w").write(agent)
+          """))
           PY
-          sudo cp /tmp/rd-daemon.plist /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
-          sudo cp /tmp/rd-agent.plist /Library/LaunchAgents/com.carriez.RustDesk_server.plist
-          sudo chown root:wheel /Library/LaunchDaemons/com.carriez.RustDesk_service.plist /Library/LaunchAgents/com.carriez.RustDesk_server.plist
-          sudo launchctl bootout system/com.carriez.RustDesk_service 2>/dev/null || true
-          sudo launchctl bootstrap system /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || sudo launchctl load -w /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || true
-          launchctl bootout gui/$UID_NUM/com.carriez.RustDesk_server 2>/dev/null || true
-          launchctl bootstrap gui/$UID_NUM /Library/LaunchAgents/com.carriez.RustDesk_server.plist || launchctl load -w /Library/LaunchAgents/com.carriez.RustDesk_server.plist || true
-          if [ -x "$SVC" ]; then sudo "$SVC" >/tmp/rd-service.log 2>&1 & fi
-          "$RD" --server >/tmp/rd-server.log 2>&1 &
+            sudo cp /tmp/rd-daemon.plist /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
+            sudo chown root:wheel /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
+            sudo launchctl bootout system/com.carriez.RustDesk_service 2>/dev/null || true
+            sudo launchctl bootstrap system /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || sudo launchctl load -w /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || true
+          fi
+          launchctl bootout "gui/$(id -u)/com.carriez.RustDesk_server" 2>/dev/null || true
+          sudo rm -f /Library/LaunchAgents/com.carriez.RustDesk_server.plist
 
           open /Applications/RustDesk.app || true
           sleep 6
-          pgrep -x RustDesk >/dev/null || "$RD" >/tmp/rd-gui.log 2>&1 &
-          sleep 2
           "$RD" --password "$RUSTDESK_PASSWORD" || true
 
           mkdir -p images
@@ -392,11 +367,7 @@ jobs:
 
           osascript -e 'tell application "RustDesk" to quit' >/dev/null 2>&1 || true
           killall RustDesk 2>/dev/null || true
-          sudo killall RustDesk 2>/dev/null || true
           sleep 3
-          sudo launchctl kickstart -k system/com.carriez.RustDesk_service 2>/dev/null || true
-          launchctl kickstart -k "gui/${UID_NUM}/com.carriez.RustDesk_server" 2>/dev/null || "$RD" --server >/tmp/rd-server.log 2>&1 &
-          sleep 2
           open /Applications/RustDesk.app || true
           sleep 6
           "$RD" --password "$RUSTDESK_PASSWORD" || true
