@@ -10,11 +10,12 @@ on:
           - windows-latest
           - ubuntu-latest
           - macos-latest
+          - macos-15
       
       port:
         description: '端口'
         required: true
-        default: '19001'
+        default: '9001'
         type: string
 
 run-name: '${{ inputs.os }} ${{ inputs.port }}'
@@ -108,10 +109,159 @@ jobs:
       - name: 运行macOS
         if: ${{ runner.os == 'macOS' }}
         run: |
-          echo "Running on macOS"
-          curl ipinfo.io
-          # 在此添加 macOS 特定的命令
+          sudo systemsetup -settimezone Asia/Shanghai || true
+          echo "sw_vers: $(sw_vers -productVersion 2>/dev/null) $(uname -m)"
+          curl -s ipinfo.io || true
 
+          # 本机 macOS 用「屏幕共享」连，不要用 Microsoft Remote Desktop（RDP）
+          # 远程管理(ARD)会走 3283，隧道只转 5900，Mac 客户端会报「不被允许」
+          echo "==== 连接方式 ===="
+          echo "屏幕共享: vnc://47.107.154.171:9999"
+          echo "用户名 runner  密码 mynewpassword"
+          echo "SSH 备路: ssh runner@47.107.154.171 -p 8080"
+
+          # 给控制台用户 runner 设密（屏幕共享走用户认证）
+          sudo dscl . -passwd /Users/runner mynewpassword || true
+          sudo sysadminctl -resetPasswordFor runner -newPassword mynewpassword || true
+
+          if ! dscl . -read /Users/vncuser >/dev/null 2>&1; then
+            MAX_UID=$(dscl . -list /Users UniqueID | awk '{print $2}' | sort -n | tail -1)
+            USER_UID=$((MAX_UID + 1))
+            sudo dscl . -create /Users/vncuser
+            sudo dscl . -create /Users/vncuser UserShell /bin/zsh
+            sudo dscl . -create /Users/vncuser RealName "VNC User"
+            sudo dscl . -create /Users/vncuser UniqueID "$USER_UID"
+            sudo dscl . -create /Users/vncuser PrimaryGroupID 80
+            sudo dscl . -create /Users/vncuser NFSHomeDirectory /Users/vncuser
+            sudo createhomedir -c -u vncuser >/dev/null
+          fi
+          sudo dscl . -passwd /Users/vncuser mynewpassword
+          sudo dseditgroup -o edit -a vncuser -t user admin || true
+
+          # SSH（隧道 8080 -> 22）
+          sudo systemsetup -f -setremotelogin on || true
+          sudo launchctl enable system/com.openssh.sshd 2>/dev/null || true
+          sudo launchctl bootstrap system /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || \
+            sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist 2>/dev/null || true
+          sudo launchctl kickstart -k system/com.openssh.sshd 2>/dev/null || true
+
+          KICKSTART="/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart"
+
+          # 只关远程管理。不要 bootout/unload 屏幕共享：macOS 26 上系统 daemon 卸掉后很难再 bootstrap，5900 会一直没人听。
+          if [ -x "$KICKSTART" ]; then
+            sudo "$KICKSTART" -deactivate -stop || true
+          fi
+
+          # VNC 传统密码（第三方客户端）；Apple 屏幕共享用 runner/mynewpassword
+          python3 - <<'PY' | sudo tee /Library/Preferences/com.apple.VNCSettings.txt >/dev/null
+          k = bytes.fromhex("1734516E8BA8C5E2FF1C39567390ADCA")
+          p = b"mynewpassword"[:8]
+          print("".join("%02X" % (k[i] ^ (p[i] if i < len(p) else 0)) for i in range(len(k))))
+          PY
+          sudo chmod 600 /Library/Preferences/com.apple.VNCSettings.txt
+
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist ARD_AllLocalUsers -bool true
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist ARD_AllLocalUsersPrivs -int -1
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist VNCAlwaysStartOnConsole -bool true
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist ScreenSharingReqPermEnabled -bool false
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist LoadReleaseParams -bool true
+
+          # 没有这个组 = 所有带密码的本地用户都能连屏幕共享
+          sudo dscl . -delete /Groups/com.apple.access_screensharing 2>/dev/null || true
+
+          if [ -x "$KICKSTART" ]; then
+            sudo "$KICKSTART" -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw mynewpassword -setreqperm -reqperm no || true
+            sudo "$KICKSTART" -configure -allowAccessFor -allUsers -privs -all || true
+            sudo "$KICKSTART" -configure -access -on -privs -all -users runner,vncuser || true
+            # configure 可能把远程管理又打开，必须再关掉
+            sudo "$KICKSTART" -deactivate -stop || true
+          fi
+
+          sudo launchctl enable system/com.apple.screensharing || true
+          # 服务已在 system domain 里（只是 Disabled），enable 后 kickstart 即可
+          sudo launchctl kickstart -k system/com.apple.screensharing 2>/dev/null || \
+            sudo launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || \
+            sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+
+          echo "==== screensharing disabled flag ===="
+          launchctl print-disabled system 2>/dev/null | grep -i screen || true
+          echo "==== waiting 5900 ===="
+          for i in {1..20}; do
+            if sudo lsof -nP -iTCP:5900 -sTCP:LISTEN >/dev/null 2>&1; then
+              echo "5900 is listening (try $i)"
+              break
+            fi
+            echo "5900 not up yet ($i)"
+            sudo launchctl enable system/com.apple.screensharing || true
+            sudo launchctl kickstart -k system/com.apple.screensharing 2>/dev/null || true
+            sleep 2
+          done
+
+          echo "==== listeners ===="
+          sudo lsof -nP -iTCP:5900 -sTCP:LISTEN || echo "WARNING: 5900 仍未监听"
+          sudo lsof -nP -iTCP:22 -sTCP:LISTEN || echo "WARNING: 22 仍未监听"
+          launchctl print system/com.apple.screensharing 2>/dev/null | head -40 || true
+
+          # 1234 -> VNC 5900，8080 -> SSH 22
+          cat > /tmp/port-proxy.py <<'PY'
+          import socket, threading, time, select
+
+          def pipe(a, b):
+              try:
+                  while True:
+                      r, _, _ = select.select([a, b], [], [], 120)
+                      if not r:
+                          continue
+                      for s in r:
+                          data = s.recv(65536)
+                          if not data:
+                              return
+                          (b if s is a else a).sendall(data)
+              except Exception:
+                  pass
+              finally:
+                  for s in (a, b):
+                      try:
+                          s.close()
+                      except Exception:
+                          pass
+
+          def serve(listen_port, dest_port):
+              srv = socket.socket()
+              srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+              srv.bind(("0.0.0.0", listen_port))
+              srv.listen(50)
+              print("proxy %s -> 127.0.0.1:%s" % (listen_port, dest_port), flush=True)
+              while True:
+                  c, _ = srv.accept()
+                  def handle(c=c):
+                      t = None
+                      for _ in range(30):
+                          try:
+                              t = socket.create_connection(("127.0.0.1", dest_port), 2)
+                              break
+                          except OSError:
+                              time.sleep(0.4)
+                      if t is None:
+                          c.close()
+                          return
+                      c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                      t.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                      pipe(c, t)
+                  threading.Thread(target=handle, daemon=True).start()
+
+          threading.Thread(target=serve, args=(1234, 5900), daemon=True).start()
+          threading.Thread(target=serve, args=(8080, 22), daemon=True).start()
+          while True:
+              time.sleep(3600)
+          PY
+          python3 /tmp/port-proxy.py >/tmp/port-proxy.log 2>&1 &
+          sleep 1
+          sudo lsof -nP -iTCP:1234 -sTCP:LISTEN || echo "WARNING: 1234 未监听"
+          sudo lsof -nP -iTCP:8080 -sTCP:LISTEN || echo "WARNING: 8080 未监听"
+
+          chmod +x tunnel-client-darwin-arm64
+          ./tunnel-client-darwin-arm64 -config client.yaml
 
       - name: Delete old workflow runs
         shell: bash
