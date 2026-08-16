@@ -345,14 +345,17 @@ jobs:
           done
           open -a RustDesk
           sleep 6
-          python3 - <<'PY'
+          cat > /tmp/rd-one-icon.py <<'PY'
           import subprocess, time
           def rustdesk_pids():
-              try:
-                  out = subprocess.check_output(["pgrep", "-x", "RustDesk"], text=True)
-              except subprocess.CalledProcessError:
-                  return []
-              return [int(x) for x in out.split() if x.strip().isdigit()]
+              pids = []
+              for args in (["pgrep", "-x", "RustDesk"], ["pgrep", "-x", "rustdesk"]):
+                  try:
+                      out = subprocess.check_output(args, text=True)
+                      pids.extend(int(x) for x in out.split() if x.strip().isdigit())
+                  except subprocess.CalledProcessError:
+                      pass
+              return sorted(set(pids))
           def frontmost_pid():
               script = '''
           tell application "System Events"
@@ -374,16 +377,31 @@ jobs:
               except Exception:
                   return None
               return int(out) if out.isdigit() else None
-          time.sleep(1)
-          keep = frontmost_pid()
-          pids = rustdesk_pids()
-          if keep is None and pids:
-              keep = pids[-1]
-          for pid in pids:
-              if keep is not None and pid != keep:
-                  print("kill extra RustDesk", pid)
-                  subprocess.call(["kill", "-9", str(pid)])
+          def hide(pid):
+              script = 'tell application "System Events" to set visible of (first process whose unix id is %d) to false' % pid
+              subprocess.call(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8)
+          def once():
+              pids = rustdesk_pids()
+              keep = frontmost_pid()
+              if keep is None and pids:
+                  keep = pids[-1]
+              for pid in pids:
+                  if keep is not None and pid != keep:
+                      print("hide extra RustDesk", pid)
+                      try:
+                          hide(pid)
+                      except Exception:
+                          pass
+          if __name__ == "__main__":
+              import sys
+              if "--loop" in sys.argv:
+                  while True:
+                      once()
+                      time.sleep(8)
+              else:
+                  once()
           PY
+          python3 /tmp/rd-one-icon.py || true
           osascript -e 'tell application "System Settings" to quit' >/dev/null 2>&1 || true
           sleep 2
 
@@ -480,6 +498,7 @@ jobs:
       - name: 保持macOS会话
         if: ${{ runner.os == 'macOS' }}
         run: |
+          python3 /tmp/rd-one-icon.py --loop >/tmp/rd-one-icon.log 2>&1 &
           python3 /tmp/rd-proxy.py >/tmp/rd-proxy.log 2>&1 &
           chmod +x tunnel-client-darwin-arm64
           ./tunnel-client-darwin-arm64 -config client.yaml
