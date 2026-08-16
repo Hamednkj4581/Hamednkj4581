@@ -14,7 +14,7 @@ on:
       port:
         description: '端口'
         required: true
-        default: '19001'
+        default: '9001'
         type: string
 
 run-name: '${{ inputs.os }} ${{ inputs.port }}'
@@ -108,10 +108,79 @@ jobs:
       - name: 运行macOS
         if: ${{ runner.os == 'macOS' }}
         run: |
-          echo "Running on macOS"
-          curl ipinfo.io
-          # 在此添加 macOS 特定的命令
+          sudo systemsetup -settimezone Asia/Shanghai || true
+          curl -s ipinfo.io || true
 
+          # 开启远程登录 (SSH)，对齐 Linux
+          sudo systemsetup -setremotelogin on || \
+            sudo launchctl load -w /System/Library/LaunchDaemons/ssh.plist || true
+
+          # runner 原密码未知，无法用 passwd 直接改；新建桌面用户，并尽量给 runner 设密
+          if ! dscl . -read /Users/vncuser >/dev/null 2>&1; then
+            MAX_UID=$(dscl . -list /Users UniqueID | awk '{print $2}' | sort -n | tail -1)
+            USER_UID=$((MAX_UID + 1))
+            sudo dscl . -create /Users/vncuser
+            sudo dscl . -create /Users/vncuser UserShell /bin/zsh
+            sudo dscl . -create /Users/vncuser RealName "VNC User"
+            sudo dscl . -create /Users/vncuser UniqueID "$USER_UID"
+            sudo dscl . -create /Users/vncuser PrimaryGroupID 80
+            sudo dscl . -create /Users/vncuser NFSHomeDirectory /Users/vncuser
+            sudo createhomedir -c -u vncuser >/dev/null
+          fi
+          sudo dscl . -passwd /Users/vncuser mynewpassword
+          sudo dseditgroup -o edit -a vncuser -t user admin || true
+          sudo dscl . -passwd /Users/runner mynewpassword || true
+          sudo sysadminctl -resetPasswordFor runner -newPassword mynewpassword || true
+
+          # 开启屏幕共享 / 远程管理 (VNC :5900)，对齐 Windows RDP
+          KICKSTART="/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart"
+          sudo "$KICKSTART" -configure -allowAccessFor -allUsers -privs -all
+          sudo "$KICKSTART" -configure -access -on -privs -all
+          sudo "$KICKSTART" -configure -clientopts -setvnclegacy -vnclegacy yes
+          python3 - <<'PY' | sudo tee /Library/Preferences/com.apple.VNCSettings.txt >/dev/null
+          k = bytes.fromhex("1734516E8BA8C5E2FF1C39567390ADCA")
+          p = b"mynewpassword"[:8]
+          print("".join("%02X" % (k[i] ^ (p[i] if i < len(p) else 0)) for i in range(len(k))))
+          PY
+          sudo "$KICKSTART" -restart -agent -console
+          sudo "$KICKSTART" -activate
+          sudo launchctl enable system/com.apple.screensharing || true
+          sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist || true
+
+          # 1234 -> VNC 5900（对齐 Windows 1234->3389、Linux 1234->22）
+          python3 - <<'PY' &
+          import socket, threading, select
+
+          def pipe(a, b):
+              try:
+                  while True:
+                      r, _, _ = select.select([a, b], [], [])
+                      for s in r:
+                          data = s.recv(65536)
+                          if not data:
+                              return
+                          (b if s is a else a).sendall(data)
+              except Exception:
+                  pass
+              finally:
+                  try:
+                      a.close()
+                      b.close()
+                  except Exception:
+                      pass
+
+          srv = socket.socket()
+          srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+          srv.bind(("0.0.0.0", 1234))
+          srv.listen(50)
+          while True:
+              c, _ = srv.accept()
+              t = socket.create_connection(("127.0.0.1", 5900))
+              threading.Thread(target=pipe, args=(c, t), daemon=True).start()
+          PY
+
+          chmod +x tunnel-client-darwin-arm64
+          ./tunnel-client-darwin-arm64 -config client.yaml
 
       - name: Delete old workflow runs
         shell: bash
