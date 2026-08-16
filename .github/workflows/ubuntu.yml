@@ -147,14 +147,10 @@ jobs:
 
           KICKSTART="/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart"
 
-          # 关掉远程管理，只留屏幕共享（Mac 自带客户端只需要 TCP 5900）
+          # 只关远程管理。不要 bootout/unload 屏幕共享：macOS 26 上系统 daemon 卸掉后很难再 bootstrap，5900 会一直没人听。
           if [ -x "$KICKSTART" ]; then
             sudo "$KICKSTART" -deactivate -stop || true
           fi
-          sudo launchctl bootout system /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
-          sudo launchctl disable system/com.apple.screensharing 2>/dev/null || true
-          sudo launchctl unload -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
-          sleep 1
 
           # VNC 传统密码（第三方客户端）；Apple 屏幕共享用 runner/mynewpassword
           python3 - <<'PY' | sudo tee /Library/Preferences/com.apple.VNCSettings.txt >/dev/null
@@ -182,10 +178,13 @@ jobs:
           fi
 
           sudo launchctl enable system/com.apple.screensharing || true
-          sudo launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || \
+          # 服务已在 system domain 里（只是 Disabled），enable 后 kickstart 即可
+          sudo launchctl kickstart -k system/com.apple.screensharing 2>/dev/null || \
+            sudo launchctl bootstrap system /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || \
             sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
-          sudo launchctl kickstart -k system/com.apple.screensharing 2>/dev/null || true
 
+          echo "==== screensharing disabled flag ===="
+          launchctl print-disabled system 2>/dev/null | grep -i screen || true
           echo "==== waiting 5900 ===="
           for i in {1..20}; do
             if sudo lsof -nP -iTCP:5900 -sTCP:LISTEN >/dev/null 2>&1; then
@@ -193,8 +192,8 @@ jobs:
               break
             fi
             echo "5900 not up yet ($i)"
-            sudo launchctl kickstart -k system/com.apple.screensharing 2>/dev/null || \
-              sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.screensharing.plist 2>/dev/null || true
+            sudo launchctl enable system/com.apple.screensharing || true
+            sudo launchctl kickstart -k system/com.apple.screensharing 2>/dev/null || true
             sleep 2
           done
 
