@@ -214,7 +214,7 @@ jobs:
               ("direct-access-port", "21118"),
               ("enable-keyboard", "Y"),
               ("enable-clipboard", "Y"),
-              ("stop-service", "Y"),
+              ("stop-service", "N"),
               ("allow-remote-config-modification", "Y"),
           ):
               if re.search(rf"(?m)^{re.escape(key)}\s*=", body):
@@ -225,10 +225,6 @@ jobs:
           os.system("sudo mkdir -p /var/root/Library/Preferences/com.carriez.RustDesk")
           os.system("sudo cp %r /var/root/Library/Preferences/com.carriez.RustDesk/RustDesk2.toml" % path)
           PY
-
-          launchctl bootout "gui/$(id -u)/com.carriez.RustDesk_server" 2>/dev/null || true
-          sudo launchctl bootout system/com.carriez.RustDesk_service 2>/dev/null || true
-          sudo rm -f /Library/LaunchAgents/com.carriez.RustDesk_server.plist /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
 
           open /Applications/RustDesk.app || true
           sleep 8
@@ -341,12 +337,54 @@ jobs:
           PY
 
           osascript -e 'tell application "RustDesk" to quit' >/dev/null 2>&1 || true
-          killall RustDesk 2>/dev/null || true
-          sleep 3
-          open /Applications/RustDesk.app || true
+          killall -9 RustDesk 2>/dev/null || true
+          sleep 2
+          while pgrep -x RustDesk >/dev/null; do
+            killall -9 RustDesk 2>/dev/null || true
+            sleep 1
+          done
+          open -a RustDesk
           sleep 6
+          python3 - <<'PY'
+          import subprocess, time
+          def rustdesk_pids():
+              try:
+                  out = subprocess.check_output(["pgrep", "-x", "RustDesk"], text=True)
+              except subprocess.CalledProcessError:
+                  return []
+              return [int(x) for x in out.split() if x.strip().isdigit()]
+          def frontmost_pid():
+              script = '''
+          tell application "System Events"
+            repeat with p in (every process whose name is "RustDesk")
+              try
+                if frontmost of p is true then return unix id of p as text
+              end try
+            end repeat
+            repeat with p in (every process whose name is "RustDesk")
+              try
+                if (count of windows of p) > 0 then return unix id of p as text
+              end try
+            end repeat
+            return ""
+          end tell
+          '''
+              try:
+                  out = subprocess.check_output(["osascript", "-e", script], text=True, timeout=8).strip()
+              except Exception:
+                  return None
+              return int(out) if out.isdigit() else None
+          time.sleep(1)
+          keep = frontmost_pid()
+          pids = rustdesk_pids()
+          if keep is None and pids:
+              keep = pids[-1]
+          for pid in pids:
+              if keep is not None and pid != keep:
+                  print("kill extra RustDesk", pid)
+                  subprocess.call(["kill", "-9", str(pid)])
+          PY
           osascript -e 'tell application "System Settings" to quit' >/dev/null 2>&1 || true
-          osascript -e 'tell application "RustDesk" to activate' >/dev/null 2>&1 || true
           sleep 2
 
           screencapture -x images/rustdesk.png || true
