@@ -115,8 +115,7 @@ jobs:
           RUSTDESK_PASSWORD: mynewpassword
         run: |
           sudo systemsetup -settimezone Asia/Shanghai || true
-          brew install displayplacer || true
-          brew install tesseract || true
+          brew install displayplacer cliclick tesseract || true
           brew install --cask rustdesk
           xattr -cr /Applications/RustDesk.app || true
 
@@ -126,24 +125,72 @@ jobs:
           fi
 
           sudo python3 - <<'PY'
-          import os, sqlite3, time
-          db = "/Library/Application Support/com.apple.TCC/TCC.db"
-          if not os.path.exists(db):
-              raise SystemExit(0)
-          now = int(time.time())
-          try:
-              con = sqlite3.connect(db)
+          import os, sqlite3, subprocess, time
+
+          def csreq_blob(app):
+              try:
+                  out = subprocess.check_output(["codesign", "-d", "-r-", app], stderr=subprocess.STDOUT, text=True)
+                  req = ""
+                  for line in out.splitlines():
+                      if "=>" in line:
+                          req = line.split("=>", 1)[1].strip()
+                  if not req:
+                      return None
+                  subprocess.run(["csreq", "-r-", "-b", "/tmp/rd.csreq"], input=req, text=True, check=True)
+                  return open("/tmp/rd.csreq", "rb").read()
+              except Exception as e:
+                  print("csreq skip:", e)
+                  return None
+
+          def grant_db(path, blob):
+              if not os.path.exists(path):
+                  return
+              now = int(time.time())
+              con = sqlite3.connect(path)
+              cols = {r[1] for r in con.execute("PRAGMA table_info(access)")}
               clients = [
                   (0, "com.carriez.RustDesk"),
+                  (1, "/Applications/RustDesk.app"),
                   (1, "/Applications/RustDesk.app/Contents/MacOS/RustDesk"),
+                  (1, "/opt/homebrew/bin/cliclick"),
+                  (1, "/usr/local/bin/cliclick"),
               ]
-              for svc in ("kTCCServiceScreenCapture", "kTCCServiceAccessibility", "kTCCServiceListenEvent", "kTCCServicePostEvent"):
+              svcs = (
+                  "kTCCServiceScreenCapture",
+                  "kTCCServiceAccessibility",
+                  "kTCCServiceListenEvent",
+                  "kTCCServicePostEvent",
+              )
+              for svc in svcs:
                   for ctype, client in clients:
-                      con.execute(
-                          "INSERT OR REPLACE INTO access (service,client,client_type,auth_value,auth_reason,auth_version,indirect_object_identifier,flags,last_modified) VALUES (?,?,?,2,4,1,'UNUSED',0,?)",
-                          (svc, client, ctype, now),
+                      row = {
+                          "service": svc,
+                          "client": client,
+                          "client_type": ctype,
+                          "auth_value": 2,
+                          "auth_reason": 3,
+                          "auth_version": 1,
+                          "csreq": blob,
+                          "indirect_object_identifier_type": 0,
+                          "indirect_object_identifier": "UNUSED",
+                          "flags": 0,
+                          "last_modified": now,
+                          "boot_uuid": "",
+                          "last_reminded": 0,
+                      }
+                      names = [n for n in row if n in cols]
+                      sql = "INSERT OR REPLACE INTO access (%s) VALUES (%s)" % (
+                          ",".join(names),
+                          ",".join(["?"] * len(names)),
                       )
+                      con.execute(sql, [row[n] for n in names])
               con.commit()
+              print("TCC granted:", path)
+
+          blob = csreq_blob("/Applications/RustDesk.app")
+          try:
+              grant_db("/Library/Application Support/com.apple.TCC/TCC.db", blob)
+              grant_db(os.path.expanduser("~/Library/Application Support/com.apple.TCC/TCC.db"), blob)
           except Exception as e:
               print("TCC skip:", e)
           PY
@@ -161,17 +208,117 @@ jobs:
               ("verification-method", "use-both-passwords"),
               ("direct-server", "Y"),
               ("direct-access-port", "21118"),
+              ("enable-keyboard", "Y"),
+              ("enable-clipboard", "Y"),
+              ("stop-service", "N"),
+              ("allow-remote-config-modification", "Y"),
           ):
               if re.search(rf"(?m)^{re.escape(key)}\s*=", body):
                   body = re.sub(rf"(?m)^{re.escape(key)}\s*=.*$", f"{key} = '{val}'", body)
               else:
                   body = body.replace("[options]", f"[options]\n{key} = '{val}'", 1)
           open(path, "w", encoding="utf-8").write(body)
+          os.system("sudo mkdir -p /var/root/Library/Preferences/com.carriez.RustDesk")
+          os.system("sudo cp %r /var/root/Library/Preferences/com.carriez.RustDesk/RustDesk2.toml" % path)
           PY
 
           RD="/Applications/RustDesk.app/Contents/MacOS/RustDesk"
+          python3 - <<'PY'
+          import subprocess, os
+          rd = "/Applications/RustDesk.app/Contents/MacOS/RustDesk"
+          try:
+              subprocess.run(["sudo", rd, "--install-service"], timeout=20)
+          except Exception as e:
+              print("install-service:", e)
+          PY
+          sudo "$RD" --service >/tmp/rd-service.log 2>&1 &
+
           open /Applications/RustDesk.app
-          sleep 8
+          sleep 6
+          "$RD" --password "$RUSTDESK_PASSWORD" || true
+
+          mkdir -p images
+          python3 - <<'PY'
+          import os, subprocess, time
+          os.makedirs("images", exist_ok=True)
+          buttons = ("configure", "install", "allow", "open", "ok", "continue", "reopen")
+          skip = {"connect", "remote", "cancel", "close"}
+
+          def ax_click():
+              script = '''
+          tell application "System Events"
+            repeat with p in {"SecurityAgent", "UserNotificationCenter", "coreautha", "RustDesk", "System Settings", "System Preferences"}
+              try
+                tell process (p as text)
+                  if exists (button "Allow" of window 1) then click button "Allow" of window 1
+                  if exists (button "Configure" of window 1) then click button "Configure" of window 1
+                  if exists (button "Install" of window 1) then click button "Install" of window 1
+                  if exists (button "Open System Settings" of window 1) then click button "Open System Settings" of window 1
+                  if exists (button "Quit and Reopen" of window 1) then click button "Quit and Reopen" of window 1
+                end tell
+              end try
+            end repeat
+          end tell
+          '''
+              subprocess.call(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+          for i in range(12):
+              ax_click()
+              shot = "images/grant.png"
+              subprocess.call(["screencapture", "-C", "-x", shot], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+              try:
+                  out = subprocess.check_output(["tesseract", shot, "stdout", "tsv"], text=True, stderr=subprocess.DEVNULL)
+              except Exception:
+                  time.sleep(1)
+                  continue
+              rows = []
+              for line in out.splitlines()[1:]:
+                  parts = line.split("\t")
+                  if len(parts) < 12:
+                      continue
+                  text = (parts[11] or "").strip()
+                  if not text:
+                      continue
+                  try:
+                      l, t, w, h = map(int, parts[6:10])
+                  except ValueError:
+                      continue
+                  if w <= 0 or h <= 0:
+                      continue
+                  rows.append((text.lower(), l, t, w, h, text))
+              clicked = False
+              for low, l, t, w, h, text in rows:
+                  if low in skip:
+                      continue
+                  if low in buttons or any(b in low for b in buttons):
+                      x, y = l + w // 2, t + h // 2
+                      print("click", text, x, y)
+                      subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
+                      clicked = True
+                      break
+              if not clicked:
+                  front = ""
+                  try:
+                      front = subprocess.check_output(
+                          ["osascript", "-e", 'tell application "System Events" to get name of first application process whose frontmost is true'],
+                          text=True,
+                      ).strip().lower()
+                  except Exception:
+                      pass
+                  if "system" in front:
+                      for low, l, t, w, h, text in rows:
+                          if "rustdesk" in low:
+                              x, y = l + w + 72, t + h // 2
+                              print("toggle", text, x, y)
+                              subprocess.call(["cliclick", "c:%s,%s" % (x, y)])
+                              break
+              time.sleep(1)
+          PY
+
+          killall RustDesk 2>/dev/null || true
+          sleep 2
+          open /Applications/RustDesk.app
+          sleep 6
           "$RD" --password "$RUSTDESK_PASSWORD" || true
 
           ID=""
@@ -183,7 +330,6 @@ jobs:
             sleep 2
           done
 
-          mkdir -p images
           screencapture -x images/rustdesk.png || true
           OTP=$(tesseract images/rustdesk.png stdout 2>/dev/null | python3 -c '
           import sys, re
