@@ -243,32 +243,10 @@ jobs:
           python3 - <<'PY'
           import os, subprocess, time
           os.makedirs("images", exist_ok=True)
-          buttons = ("configure", "install", "allow", "open", "ok", "continue", "reopen")
+          buttons = ("configure", "install", "allow", "reopen", "system settings")
           skip = {"connect", "remote", "cancel", "close"}
 
-          def ax_click():
-              script = '''
-          tell application "System Events"
-            repeat with p in {"SecurityAgent", "UserNotificationCenter", "coreautha", "RustDesk", "System Settings", "System Preferences"}
-              try
-                tell process (p as text)
-                  if exists (button "Allow" of window 1) then click button "Allow" of window 1
-                  if exists (button "Configure" of window 1) then click button "Configure" of window 1
-                  if exists (button "Install" of window 1) then click button "Install" of window 1
-                  if exists (button "Open System Settings" of window 1) then click button "Open System Settings" of window 1
-                  if exists (button "Quit and Reopen" of window 1) then click button "Quit and Reopen" of window 1
-                end tell
-              end try
-            end repeat
-          end tell
-          '''
-              try:
-                  subprocess.run(["osascript", "-e", script], timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-              except Exception:
-                  pass
-
-          for i in range(12):
-              ax_click()
+          for i in range(8):
               shot = "images/grant.png"
               subprocess.call(["screencapture", "-C", "-x", shot], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
               try:
@@ -321,13 +299,9 @@ jobs:
               time.sleep(1)
           PY
 
-          killall RustDesk 2>/dev/null || true
+          osascript -e 'tell application "System Settings" to quit' >/dev/null 2>&1 || true
+          osascript -e 'tell application "RustDesk" to activate' >/dev/null 2>&1 || true
           sleep 2
-          open /Applications/RustDesk.app || true
-          sleep 4
-          pgrep -x RustDesk >/dev/null || "$RD" >/tmp/rd-gui.log 2>&1 &
-          sleep 4
-          "$RD" --password "$RUSTDESK_PASSWORD" || true
 
           ID=""
           for i in {1..15}; do
