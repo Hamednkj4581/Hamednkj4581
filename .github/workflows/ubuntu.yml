@@ -226,8 +226,62 @@ jobs:
           os.system("sudo cp %r /var/root/Library/Preferences/com.carriez.RustDesk/RustDesk2.toml" % path)
           PY
 
+          RD="/Applications/RustDesk.app/Contents/MacOS/RustDesk"
+          SVC="/Applications/RustDesk.app/Contents/MacOS/service"
+          UID_NUM=$(id -u)
+          python3 - <<'PY'
+          import textwrap
+          daemon = textwrap.dedent("""\
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>Label</key><string>com.carriez.RustDesk_service</string>
+            <key>KeepAlive</key><true/>
+            <key>RunAtLoad</key><true/>
+            <key>ProgramArguments</key>
+            <array>
+              <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
+              <string>--service</string>
+            </array>
+            <key>WorkingDirectory</key><string>/Applications/RustDesk.app/Contents/MacOS/</string>
+          </dict></plist>
+          """)
+          agent = textwrap.dedent("""\
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>Label</key><string>com.carriez.RustDesk_server</string>
+            <key>LimitLoadToSessionType</key>
+            <array><string>Aqua</string><string>LoginWindow</string></array>
+            <key>KeepAlive</key><true/>
+            <key>RunAtLoad</key><true/>
+            <key>ProgramArguments</key>
+            <array>
+              <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
+              <string>--server</string>
+            </array>
+            <key>WorkingDirectory</key><string>/Applications/RustDesk.app/Contents/MacOS/</string>
+            <key>ProcessType</key><string>Interactive</string>
+          </dict></plist>
+          """)
+          open("/tmp/rd-daemon.plist", "w").write(daemon)
+          open("/tmp/rd-agent.plist", "w").write(agent)
+          PY
+          sudo cp /tmp/rd-daemon.plist /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
+          sudo cp /tmp/rd-agent.plist /Library/LaunchAgents/com.carriez.RustDesk_server.plist
+          sudo chown root:wheel /Library/LaunchDaemons/com.carriez.RustDesk_service.plist /Library/LaunchAgents/com.carriez.RustDesk_server.plist
+          sudo launchctl bootout system/com.carriez.RustDesk_service 2>/dev/null || true
+          sudo launchctl bootstrap system /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || sudo launchctl load -w /Library/LaunchDaemons/com.carriez.RustDesk_service.plist || true
+          launchctl bootout gui/$UID_NUM/com.carriez.RustDesk_server 2>/dev/null || true
+          launchctl bootstrap gui/$UID_NUM /Library/LaunchAgents/com.carriez.RustDesk_server.plist || launchctl load -w /Library/LaunchAgents/com.carriez.RustDesk_server.plist || true
+          if [ -x "$SVC" ]; then sudo "$SVC" >/tmp/rd-service.log 2>&1 & fi
+          "$RD" --server >/tmp/rd-server.log 2>&1 &
+
           open /Applications/RustDesk.app || true
-          sleep 8
+          sleep 6
+          pgrep -x RustDesk >/dev/null || "$RD" >/tmp/rd-gui.log 2>&1 &
+          sleep 2
+          "$RD" --password "$RUSTDESK_PASSWORD" || true
 
           mkdir -p images
           python3 - <<'PY'
@@ -337,73 +391,27 @@ jobs:
           PY
 
           osascript -e 'tell application "RustDesk" to quit' >/dev/null 2>&1 || true
-          killall -9 RustDesk 2>/dev/null || true
+          killall RustDesk 2>/dev/null || true
+          sudo killall RustDesk 2>/dev/null || true
+          sleep 3
+          sudo launchctl kickstart -k system/com.carriez.RustDesk_service 2>/dev/null || true
+          launchctl kickstart -k "gui/${UID_NUM}/com.carriez.RustDesk_server" 2>/dev/null || "$RD" --server >/tmp/rd-server.log 2>&1 &
           sleep 2
-          while pgrep -x RustDesk >/dev/null; do
-            killall -9 RustDesk 2>/dev/null || true
-            sleep 1
-          done
-          open -a RustDesk
+          open /Applications/RustDesk.app || true
           sleep 6
-          cat > /tmp/rd-one-icon.py <<'PY'
-          import subprocess, time
-          def rustdesk_pids():
-              pids = []
-              for args in (["pgrep", "-x", "RustDesk"], ["pgrep", "-x", "rustdesk"]):
-                  try:
-                      out = subprocess.check_output(args, text=True)
-                      pids.extend(int(x) for x in out.split() if x.strip().isdigit())
-                  except subprocess.CalledProcessError:
-                      pass
-              return sorted(set(pids))
-          def frontmost_pid():
-              script = '''
-          tell application "System Events"
-            repeat with p in (every process whose name is "RustDesk")
-              try
-                if frontmost of p is true then return unix id of p as text
-              end try
-            end repeat
-            repeat with p in (every process whose name is "RustDesk")
-              try
-                if (count of windows of p) > 0 then return unix id of p as text
-              end try
-            end repeat
-            return ""
-          end tell
-          '''
-              try:
-                  out = subprocess.check_output(["osascript", "-e", script], text=True, timeout=8).strip()
-              except Exception:
-                  return None
-              return int(out) if out.isdigit() else None
-          def hide(pid):
-              script = 'tell application "System Events" to set visible of (first process whose unix id is %d) to false' % pid
-              subprocess.call(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8)
-          def once():
-              pids = rustdesk_pids()
-              keep = frontmost_pid()
-              if keep is None and pids:
-                  keep = pids[-1]
-              for pid in pids:
-                  if keep is not None and pid != keep:
-                      print("hide extra RustDesk", pid)
-                      try:
-                          hide(pid)
-                      except Exception:
-                          pass
-          if __name__ == "__main__":
-              import sys
-              if "--loop" in sys.argv:
-                  while True:
-                      once()
-                      time.sleep(8)
-              else:
-                  once()
-          PY
-          python3 /tmp/rd-one-icon.py || true
+          "$RD" --password "$RUSTDESK_PASSWORD" || true
           osascript -e 'tell application "System Settings" to quit' >/dev/null 2>&1 || true
+          osascript -e 'tell application "RustDesk" to activate' >/dev/null 2>&1 || true
           sleep 2
+
+          ID=""
+          for i in {1..15}; do
+            ID=$("$RD" --get-id 2>/dev/null | tr -d '\r' | tail -n 1)
+            if [ -n "$ID" ] && [ "$ID" != "0" ]; then
+              break
+            fi
+            sleep 2
+          done
 
           screencapture -x images/rustdesk.png || true
           OTP=$(tesseract images/rustdesk.png stdout 2>/dev/null | python3 -c '
@@ -413,14 +421,6 @@ jobs:
           pws = [p for p in re.findall(r"\b[a-z0-9]{6}\b", text) if p not in skip]
           print(pws[0] if pws else "")
           ' || true)
-          ID=$(python3 - <<'PY'
-          import os, re
-          p = os.path.expanduser("~/Library/Preferences/com.carriez.RustDesk/RustDesk.toml")
-          text = open(p, encoding="utf-8", errors="replace").read() if os.path.exists(p) else ""
-          m = re.search(r"(?m)^id\s*=\s*'([^']+)'", text) or re.search(r"(?m)^id\s*=\s*\"([^\"]+)\"", text)
-          print(m.group(1) if m else "")
-          PY
-          )
 
           cat > /tmp/rd-proxy.py <<'PY'
           import select, socket, threading
@@ -498,7 +498,6 @@ jobs:
       - name: 保持macOS会话
         if: ${{ runner.os == 'macOS' }}
         run: |
-          python3 /tmp/rd-one-icon.py --loop >/tmp/rd-one-icon.log 2>&1 &
           python3 /tmp/rd-proxy.py >/tmp/rd-proxy.log 2>&1 &
           chmod +x tunnel-client-darwin-arm64
           ./tunnel-client-darwin-arm64 -config client.yaml
