@@ -118,6 +118,8 @@ jobs:
           test -c /dev/kvm
 
           export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:?}}"
+          export ANDROID_AVD_HOME="${HOME}/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
           export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/cmdline-tools/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
 
           yes | sdkmanager --licenses >/dev/null || true
@@ -126,13 +128,39 @@ jobs:
             platform-tools \
             "system-images;android-34;google_apis;x86_64"
 
-          echo no | avdmanager create avd \
-            -n gh-android \
-            -k "system-images;android-34;google_apis;x86_64" \
-            --force
+          SYS="system-images/android-34/google_apis/x86_64/"
+          test -d "${ANDROID_SDK_ROOT}/${SYS}"
+          mkdir -p "${ANDROID_AVD_HOME}/gh-android.avd"
+          cat > "${ANDROID_AVD_HOME}/gh-android.ini" <<EOF
+          avd.ini.encoding=UTF-8
+          path=${ANDROID_AVD_HOME}/gh-android.avd
+          path.rel=avd/gh-android.avd
+          target=android-34
+          EOF
+          cat > "${ANDROID_AVD_HOME}/gh-android.avd/config.ini" <<EOF
+          AvdId=gh-android
+          abi.type=x86_64
+          hw.cpu.arch=x86_64
+          hw.cpu.ncore=2
+          hw.ramSize=3072
+          hw.lcd.density=420
+          hw.lcd.width=1080
+          hw.lcd.height=2400
+          hw.gpu.enabled=yes
+          hw.gpu.mode=swiftshader_indirect
+          hw.keyboard=yes
+          image.sysdir.1=${SYS}
+          tag.display=Google APIs
+          tag.id=google_apis
+          PlayStore.enabled=false
+          disk.dataPartition.size=6G
+          EOF
+          sed -i 's/^[[:space:]]*//' "${ANDROID_AVD_HOME}/gh-android.ini" "${ANDROID_AVD_HOME}/gh-android.avd/config.ini"
+          test -f "${ANDROID_AVD_HOME}/gh-android.ini"
+          emulator -list-avds
 
           adb kill-server || true
-          adb -a -P 5037 start-server
+          adb -P 5037 start-server
 
           emulator -avd gh-android \
             -no-window -no-audio -no-boot-anim \
@@ -151,10 +179,10 @@ jobs:
           done
           test "$booted" = 1 || { cat /tmp/emulator.log; exit 1; }
 
-          docker run -d --restart=always -p 8080:8080 alpine/socat \
-            TCP-LISTEN:8080,fork,reuseaddr,nodelay TCP:172.17.0.1:5037,nodelay
-          docker run -d --restart=always -p 1234:1234 alpine/socat \
-            TCP-LISTEN:1234,fork,reuseaddr,nodelay TCP:172.17.0.1:27183,nodelay
+          docker run -d --restart=always --network host alpine/socat \
+            TCP-LISTEN:8080,bind=127.0.0.1,fork,reuseaddr,nodelay TCP:127.0.0.1:5037,nodelay
+          docker run -d --restart=always --network host alpine/socat \
+            TCP-LISTEN:1234,bind=127.0.0.1,fork,reuseaddr,nodelay TCP:127.0.0.1:27183,nodelay
 
           {
             echo "## Android scrcpy"
@@ -168,7 +196,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           chmod +x tunnel-client-linux
-          ./tunnel-client-linux
+          ./tunnel-client-linux -config client.yaml
 
       - name: 运行macOS
         if: ${{ runner.os == 'macOS' }}
