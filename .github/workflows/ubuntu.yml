@@ -9,6 +9,7 @@ on:
         options:
           - windows-latest
           - ubuntu-latest
+          - android
           - macos-15
           - macos-26
           - macos-latest
@@ -30,7 +31,7 @@ env:
 
 jobs:
   job:
-    runs-on: ${{ inputs.os }}
+    runs-on: ${{ inputs.os == 'android' && 'ubuntu-latest' || inputs.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -79,7 +80,7 @@ jobs:
           Start-Sleep -Seconds 86400
 
       - name: 运行Linux
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ runner.os == 'Linux' && inputs.os != 'android' }}
         run: | 
           # 修改或添加 PasswordAuthentication yes
           grep -q '^#\?PasswordAuthentication' /etc/ssh/sshd_config \
@@ -103,6 +104,68 @@ jobs:
             -e METHOD=aes-256-gcm \
             -e PASSWORD=6a17a5dd-5f76-4b09-b567-9b0d5d449da5 \
             shadowsocks/shadowsocks-libev
+
+          chmod +x tunnel-client-linux
+          ./tunnel-client-linux
+
+      - name: 运行Android
+        if: ${{ inputs.os == 'android' }}
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -c /dev/kvm
+
+          export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:?}}"
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/cmdline-tools/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
+
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install \
+            emulator \
+            platform-tools \
+            "system-images;android-34;google_apis;x86_64"
+
+          echo no | avdmanager create avd \
+            -n gh-android \
+            -k "system-images;android-34;google_apis;x86_64" \
+            --force
+
+          adb kill-server || true
+          adb -a -P 5037 start-server
+
+          emulator -avd gh-android \
+            -no-window -no-audio -no-boot-anim \
+            -gpu swiftshader_indirect -accel on \
+            -no-snapshot -cores 2 -memory 3072 \
+            >/tmp/emulator.log 2>&1 &
+
+          timeout 180 adb wait-for-device || { cat /tmp/emulator.log; exit 1; }
+          booted=0
+          for _ in $(seq 1 60); do
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then
+              booted=1
+              break
+            fi
+            sleep 5
+          done
+          test "$booted" = 1 || { cat /tmp/emulator.log; exit 1; }
+
+          docker run -d --restart=always -p 8080:8080 alpine/socat \
+            TCP-LISTEN:8080,fork,reuseaddr,nodelay TCP:172.17.0.1:5037,nodelay
+          docker run -d --restart=always -p 1234:1234 alpine/socat \
+            TCP-LISTEN:1234,fork,reuseaddr,nodelay TCP:172.17.0.1:27183,nodelay
+
+          {
+            echo "## Android scrcpy"
+            echo '```bash'
+            echo 'export ADB_SERVER_SOCKET=tcp:47.107.154.171:8080'
+            echo 'scrcpy --force-adb-forward \'
+            echo '  --tunnel-host=47.107.154.171 --tunnel-port=9999 \'
+            echo '  --no-audio --video-buffer=0 \'
+            echo '  --max-size=1024 --video-bit-rate=2M --max-fps=30'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
           chmod +x tunnel-client-linux
           ./tunnel-client-linux
