@@ -111,7 +111,6 @@ jobs:
           # 7z x tabby-1.0.230-portable-x64.zip -otabby
           
           # curl -L -O https://cosbrowser.cloud.tencent.com/cosbrowser-setup-latest.exe
-          # curl -L -o Xshell_Installer.exe https://cdn.netsarang.net/v8/Xshell-latest-p
           # curl -L -o Xftp_Installer.exe https://cdn.netsarang.net/v8/Xftp-latest-p
           # curl -L -O https://gosspublic.alicdn.com/ossbrowser/1.18.0/oss-browser-win32-x64.zip?spm=a2c4g.11186623.0.0.a371450fzLHNZ2&file=oss-browser-win32-x64.zip
           # curl -L -O https://cdn.mysql.com//Downloads/MySQLGUITools/mysql-workbench-community-8.0.46-winx64.msi
@@ -123,6 +122,32 @@ jobs:
           # echo "::group::vscode"
           # choco install vscode
           # echo "::endgroup::"
+
+          # 官方 Xshell 8 免费版（仅限个人和教育用途），NatLink 启动后后台静默安装。
+          Start-Job -ScriptBlock {
+            $ErrorActionPreference = 'Stop'
+            Start-Transcript -Path (Join-Path $env:USERPROFILE 'Desktop/xshell-install.log') -Force | Out-Null
+            try {
+              while (-not (Get-Process -Name 'natlink-cli-windows-x64' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 1 }
+              $installer = Join-Path $env:RUNNER_TEMP 'Xshell_Installer.exe'
+              $response = Join-Path $env:GITHUB_WORKSPACE '.github/scripts/xshell-install.iss'
+              $setupLog = Join-Path $env:USERPROFILE 'Desktop/xshell-setup.log'
+              Invoke-WebRequest -Uri 'https://cdn.netsarang.net/v8/Xshell-latest-p' -OutFile $installer -TimeoutSec 180
+              $signature = Get-AuthenticodeSignature -LiteralPath $installer
+              if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notlike 'CN="NetSarang Computer, Inc.",*') {
+                throw 'Xshell 安装包 NetSarang 签名校验失败'
+              }
+              $process = Start-Process -FilePath $installer -ArgumentList "-s -f1`"$response`" -f2`"$setupLog`"" -WindowStyle Hidden -Wait -PassThru
+              if ($process.ExitCode -notin @(0, 3010)) { throw "Xshell 安装失败：$($process.ExitCode)" }
+              if (-not (Test-Path -LiteralPath $setupLog) -or -not (Select-String -LiteralPath $setupLog -Pattern '^ResultCode=0$' -Quiet)) {
+                throw "Xshell 静默安装失败，请查看 $setupLog"
+              }
+              $xshell = Join-Path ${env:ProgramFiles(x86)} 'NetSarang/Xshell 8/Xshell.exe'
+              if (-not (Test-Path -LiteralPath $xshell)) { throw 'Xshell 安装后未找到程序' }
+              Write-Host 'Xshell 8 免费版静默安装完成'
+            } catch { Write-Warning "Xshell 安装失败：$_" }
+            finally { Stop-Transcript | Out-Null }
+          } | Out-Null
 
           # 后台任务等 NatLink 启动后再安装输入法。
           Start-Job -ScriptBlock {
