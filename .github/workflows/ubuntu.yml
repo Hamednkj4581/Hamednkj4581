@@ -85,34 +85,9 @@ jobs:
             echo "在本机 NatLink 中连接上述设备码，使用连接后显示的本机映射端口访问服务。"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: 静默安装微信输入法
-        if: ${{ runner.os == 'Windows' }}
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $installer = Join-Path $env:RUNNER_TEMP 'WeTypeSetup.exe'
-          try {
-            Invoke-WebRequest -Uri 'https://download.z.weixin.qq.com/app/win/WeTypeSetup_3.0.0.32_3.exe' -OutFile $installer
-            # 官方可能替换同一版本的安装包，因此验证数字签名和发布者。
-            $signature = Get-AuthenticodeSignature -LiteralPath $installer
-            if ($signature.Status -ne 'Valid') {
-              throw "微信输入法安装包数字签名校验失败：$($signature.Status)"
-            }
-            $publisher = $signature.SignerCertificate.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
-            if ($publisher -ne 'Tencent Technology (Shenzhen) Company Limited') {
-              throw "微信输入法安装包发布者不是腾讯：$publisher"
-            }
-            Write-Host "微信输入法安装包 SHA-256：$((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash)"
-            $process = Start-Process -FilePath $installer -ArgumentList '/s' -Wait -PassThru
-            if ($process.ExitCode -ne 0) {
-              throw "微信输入法静默安装失败，退出码：$($process.ExitCode)"
-            }
-          } finally {
-            Remove-Item -LiteralPath $installer -Force -ErrorAction SilentlyContinue
-          }
-
       - name: 运行Windows
         if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
         run: |
           net user runneradmin mynewpassword@112233
 
@@ -148,6 +123,25 @@ jobs:
           # echo "::group::vscode"
           # choco install vscode
           # echo "::endgroup::"
+
+          # 后台任务等 NatLink 启动后再安装输入法。
+          Start-Job -ScriptBlock {
+            $ErrorActionPreference = 'Stop'
+            Start-Transcript -Path (Join-Path $env:USERPROFILE 'Desktop/wetype-install.log') -Force | Out-Null
+            try {
+              while (-not (Get-Process -Name 'natlink-cli-windows-x64' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 1 }
+              $installer = Join-Path $env:RUNNER_TEMP 'WeTypeSetup.exe'
+              Invoke-WebRequest -Uri 'https://download.z.weixin.qq.com/app/win/WeTypeSetup_3.0.0.32_3.exe' -OutFile $installer
+              $signature = Get-AuthenticodeSignature -LiteralPath $installer
+              if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notlike 'CN=Tencent Technology (Shenzhen) Company Limited,*') {
+                throw '微信输入法安装包腾讯签名校验失败'
+              }
+              $process = Start-Process -FilePath $installer -ArgumentList '/s' -WindowStyle Hidden -Wait -PassThru
+              if ($process.ExitCode -ne 0) { throw "微信输入法安装失败：$($process.ExitCode)" }
+              Write-Host '微信输入法静默安装完成'
+            } catch { Write-Host "微信输入法安装失败：$_" }
+            Stop-Transcript | Out-Null
+          } | Out-Null
 
           & "$env:GITHUB_WORKSPACE/natlink/natlink-cli-windows-x64.exe" --code "$env:NATLINK_CODE" --name "$env:NATLINK_NAME" --ports "$env:NATLINK_PORTS" --password "$env:NATLINK_PASSWORD"
 
