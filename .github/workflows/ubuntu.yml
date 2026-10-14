@@ -14,13 +14,13 @@ on:
           - macos-26
           - macos-latest
       
-      port:
-        description: '端口'
-        required: true
-        default: '9001'
+      code:
+        description: 'NatLink 设备码（9 位数字，留空自动生成）'
+        required: false
+        default: ''
         type: string
 
-run-name: '${{ inputs.os }} ${{ inputs.port }}'
+run-name: '${{ inputs.os }} NatLink'
 
 permissions:
   actions: write
@@ -28,6 +28,8 @@ permissions:
 
 env:
   TZ: Asia/Shanghai
+  NATLINK_NAME: '${{ github.repository }} / ${{ inputs.os }} / ${{ github.run_number }}'
+  NATLINK_PASSWORD: mynewpassword
 
 jobs:
   job:
@@ -35,6 +37,41 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: 准备 NatLink
+        shell: bash
+        env:
+          INPUT_CODE: ${{ inputs.code }}
+          REMOTE_OS: ${{ inputs.os }}
+        run: |
+          set -euo pipefail
+          NATLINK_CODE="$INPUT_CODE"
+          if [ -z "$NATLINK_CODE" ]; then
+            printf -v NATLINK_CODE '%03d%03d%03d' "$((100 + RANDOM % 900))" "$((RANDOM % 1000))" "$((RANDOM % 1000))"
+          fi
+          if [[ ! "$NATLINK_CODE" =~ ^[0-9]{9}$ ]]; then
+            echo "::error::NatLink 设备码必须为 9 位数字"
+            exit 1
+          fi
+          if [ "$REMOTE_OS" = android ]; then
+            NATLINK_PORTS=5037,27183
+          else
+            case "$RUNNER_OS" in
+              Windows) NATLINK_PORTS=3389 ;;
+              Linux) NATLINK_PORTS=22,8388 ;;
+              macOS) NATLINK_PORTS=21118 ;;
+              *) echo "::error::不支持的系统：$RUNNER_OS"; exit 1 ;;
+            esac
+          fi
+          echo "NATLINK_CODE=$NATLINK_CODE" >> "$GITHUB_ENV"
+          echo "NATLINK_PORTS=$NATLINK_PORTS" >> "$GITHUB_ENV"
+          {
+            echo "## NatLink"
+            echo "- 设备码：\`$NATLINK_CODE\`"
+            echo "- 连接密码：\`$NATLINK_PASSWORD\`"
+            echo "- 开放的本机 TCP 端口：\`$NATLINK_PORTS\`"
+            echo "在本机 NatLink 中连接上述设备码，使用连接后显示的本机映射端口访问服务。"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 运行Windows
         if: ${{ runner.os == 'Windows' }}
@@ -55,9 +92,6 @@ jobs:
           net stop termservice /y
           net start termservice
 
-          netsh interface portproxy add v4tov4 listenport=1234 listenaddress=0.0.0.0 connectport=3389 connectaddress=127.0.0.1
-          Start-Process -FilePath "tunnel-client-windows" -ArgumentList "-config client.yaml" -NoNewWindow
-
           cd C:/Users/runneradmin/Desktop
 
           # curl -LO https://github.com/Eugeny/tabby/releases/download/v1.0.230/tabby-1.0.230-portable-x64.zip
@@ -77,7 +111,7 @@ jobs:
           # choco install vscode
           # echo "::endgroup::"
 
-          Start-Sleep -Seconds 86400
+          & "$env:GITHUB_WORKSPACE/natlink/natlink-cli-windows-x64.exe" --code "$env:NATLINK_CODE" --name "$env:NATLINK_NAME" --ports "$env:NATLINK_PORTS"
 
       - name: 运行Linux
         if: ${{ runner.os == 'Linux' && inputs.os != 'android' }}
@@ -94,7 +128,6 @@ jobs:
           sudo systemctl restart ssh
 
           echo "runner:mynewpassword" | sudo chpasswd
-          docker run -d -p 1234:1234 --restart=always alpine/socat TCP-LISTEN:1234,fork TCP:172.17.0.1:22
           
           docker run -d \
             --restart unless-stopped \
@@ -105,8 +138,8 @@ jobs:
             -e PASSWORD=6a17a5dd-5f76-4b09-b567-9b0d5d449da5 \
             shadowsocks/shadowsocks-libev
 
-          chmod +x tunnel-client-linux
-          ./tunnel-client-linux
+          chmod +x natlink/natlink-cli-linux-x64
+          ./natlink/natlink-cli-linux-x64 --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS"
 
       - name: 运行Android
         if: ${{ inputs.os == 'android' }}
@@ -179,24 +212,20 @@ jobs:
           done
           test "$booted" = 1 || { cat /tmp/emulator.log; exit 1; }
 
-          docker run -d --restart=always --network host alpine/socat \
-            TCP-LISTEN:8080,bind=127.0.0.1,fork,reuseaddr,nodelay TCP:127.0.0.1:5037,nodelay
-          docker run -d --restart=always --network host alpine/socat \
-            TCP-LISTEN:1234,bind=127.0.0.1,fork,reuseaddr,nodelay TCP:127.0.0.1:27183,nodelay
-
           {
             echo "## Android scrcpy"
+            echo '连接 NatLink 后，将下方两个占位符替换为远端 5037 和 27183 对应的本机映射端口。'
             echo '```bash'
-            echo 'export ADB_SERVER_SOCKET=tcp:47.107.154.171:8080'
-            echo 'scrcpy --force-adb-forward \'
-            echo '  --tunnel-host=47.107.154.171 --tunnel-port=9999 \'
+            echo 'export ADB_SERVER_SOCKET=tcp:127.0.0.1:<5037 对应的本机端口>'
+            echo 'scrcpy --port=27183 --force-adb-forward \'
+            echo '  --tunnel-host=127.0.0.1 --tunnel-port=<27183 对应的本机端口> \'
             echo '  --no-audio --video-buffer=0 \'
             echo '  --max-size=1024 --video-bit-rate=2M --max-fps=30'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-          chmod +x tunnel-client-linux
-          ./tunnel-client-linux -config client.yaml
+          chmod +x natlink/natlink-cli-linux-x64
+          ./natlink/natlink-cli-linux-x64 --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS"
 
       - name: 运行macOS
         if: ${{ runner.os == 'macOS' }}
@@ -625,53 +654,14 @@ jobs:
           PY
           OTP=$(cat /tmp/rd-otp.txt 2>/dev/null || true)
 
-          cat > /tmp/rd-proxy.py <<'PY'
-          import select, socket, threading
-          def pipe(a, b):
-              try:
-                  while True:
-                      r, _, _ = select.select([a, b], [], [], 120)
-                      if not r:
-                          continue
-                      for s in r:
-                          data = s.recv(65536)
-                          if not data:
-                              return
-                          (b if s is a else a).sendall(data)
-              except Exception:
-                  pass
-              finally:
-                  for s in (a, b):
-                      try:
-                          s.close()
-                      except Exception:
-                          pass
-          srv = socket.socket()
-          srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-          srv.bind(("0.0.0.0", 1234))
-          srv.listen(50)
-          while True:
-              c, _ = srv.accept()
-              def handle(c=c):
-                  try:
-                      t = socket.create_connection(("127.0.0.1", 21118), 5)
-                  except OSError:
-                      c.close()
-                      return
-                  c.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                  t.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-                  pipe(c, t)
-              threading.Thread(target=handle, daemon=True).start()
-          PY
-
           echo "========================================"
-          echo "RustDesk 直连 ID: 47.107.154.171:9999"
+          echo "RustDesk 直连 ID: 127.0.0.1:<NatLink 映射的 21118 端口>"
           echo "一次性密码: $OTP"
           echo "不要填 mynewpassword，只用上面的一次性密码"
           echo "========================================"
           {
             echo "## RustDesk"
-            echo "- **直连 ID:** \`47.107.154.171:9999\`"
+            echo "- **直连 ID:** 连接 NatLink 后使用 \`127.0.0.1:<21118 对应的本机端口>\`"
             echo "- **一次性密码:** \`$OTP\`"
             echo "- 不要用固定密码 mynewpassword"
           } >> "$GITHUB_STEP_SUMMARY"
@@ -700,6 +690,10 @@ jobs:
       - name: 保持macOS会话
         if: ${{ runner.os == 'macOS' }}
         run: |
-          python3 /tmp/rd-proxy.py >/tmp/rd-proxy.log 2>&1 &
-          chmod +x tunnel-client-darwin-arm64
-          ./tunnel-client-darwin-arm64 -config client.yaml
+          case "$(uname -m)" in
+            arm64) NATLINK_BIN=natlink/natlink-cli-macos-arm64 ;;
+            x86_64) NATLINK_BIN=natlink/natlink-cli-macos-x64 ;;
+            *) echo "::error::不支持的 macOS 架构"; exit 1 ;;
+          esac
+          chmod +x "$NATLINK_BIN"
+          "$NATLINK_BIN" --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS"
