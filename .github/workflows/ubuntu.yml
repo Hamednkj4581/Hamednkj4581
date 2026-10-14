@@ -93,10 +93,16 @@ jobs:
           $installer = Join-Path $env:RUNNER_TEMP 'WeTypeSetup.exe'
           try {
             Invoke-WebRequest -Uri 'https://download.z.weixin.qq.com/app/win/WeTypeSetup_3.0.0.32_3.exe' -OutFile $installer
-            $expectedHash = '784182A330329655B5404E93A33B6C0A12AE0B5A6369F68BC3C64CE0DE87E19D'
-            if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash -ne $expectedHash) {
-              throw '微信输入法安装包 SHA-256 校验失败'
+            # 官方可能替换同一版本的安装包，因此验证数字签名和发布者。
+            $signature = Get-AuthenticodeSignature -LiteralPath $installer
+            if ($signature.Status -ne 'Valid') {
+              throw "微信输入法安装包数字签名校验失败：$($signature.Status)"
             }
+            $publisher = $signature.SignerCertificate.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+            if ($publisher -ne 'Tencent Technology (Shenzhen) Company Limited') {
+              throw "微信输入法安装包发布者不是腾讯：$publisher"
+            }
+            Write-Host "微信输入法安装包 SHA-256：$((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash)"
             $process = Start-Process -FilePath $installer -ArgumentList '/s' -Wait -PassThru
             if ($process.ExitCode -ne 0) {
               throw "微信输入法静默安装失败，退出码：$($process.ExitCode)"
