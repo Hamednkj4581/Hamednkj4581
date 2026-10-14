@@ -33,7 +33,6 @@ permissions:
 
 env:
   TZ: Asia/Shanghai
-  NATLINK_NAME: '${{ github.repository }} / ${{ inputs.os }} / ${{ github.run_number }}'
   NATLINK_PASSWORD: ${{ inputs.password }}
 
 jobs:
@@ -50,6 +49,8 @@ jobs:
           REMOTE_OS: ${{ inputs.os }}
         run: |
           set -euo pipefail
+          # 上海时间 UTC+8；POSIX 时区写法兼容 Windows Git Bash。
+          NATLINK_NAME="$REMOTE_OS $(TZ=CST-8 date '+%Y-%m-%d %H:%M:%S')"
           if (( ${#NATLINK_PASSWORD} < 6 || ${#NATLINK_PASSWORD} > 64 )) || [[ "$NATLINK_PASSWORD" =~ [[:cntrl:]] ]]; then
             echo "::error::NatLink 连接密码必须为 6–64 个字符，且不能包含控制字符"
             exit 1
@@ -72,6 +73,7 @@ jobs:
               *) echo "::error::不支持的系统：$RUNNER_OS"; exit 1 ;;
             esac
           fi
+          echo "NATLINK_NAME=$NATLINK_NAME" >> "$GITHUB_ENV"
           echo "NATLINK_CODE=$NATLINK_CODE" >> "$GITHUB_ENV"
           echo "NATLINK_PORTS=$NATLINK_PORTS" >> "$GITHUB_ENV"
           {
