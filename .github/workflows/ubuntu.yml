@@ -130,19 +130,60 @@ jobs:
             try {
               while (-not (Get-Process -Name 'natlink-cli-windows-x64' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 1 }
               $installer = Join-Path $env:RUNNER_TEMP 'Xshell_Installer.exe'
-              $response = Join-Path $env:GITHUB_WORKSPACE '.github/scripts/xshell-install.iss'
+              $response = Join-Path $env:RUNNER_TEMP 'xshell-install.iss'
               $setupLog = Join-Path $env:USERPROFILE 'Desktop/xshell-setup.log'
+              $msiLog = Join-Path $env:USERPROFILE 'Desktop/xshell-msi.log'
+              $installDir = Join-Path ${env:ProgramFiles(x86)} 'NetSarang\Xshell 8'
+              $guid = '{4E3C6853-2BAC-4D1D-AD22-D820D0426FE0}'
+              # 在 Runner 上生成 ASCII/CRLF 响应文件，覆盖普通完成和稍后重启两种分支。
+              $responseText = @(
+                '[InstallShield Silent]'
+                'Version=v7.00'
+                'File=Response File'
+                '[File Transfer]'
+                'OverwrittenReadOnly=NoToAll'
+                "[$guid-DlgOrder]"
+                "Dlg0=$guid-SdWelcome-0"
+                'Count=6'
+                "Dlg1=$guid-SdLicense2Rtf-0"
+                "Dlg2=$guid-SdAskDestPath-0"
+                "Dlg3=$guid-SdSelectFolder-0"
+                "Dlg4=$guid-SdFinish-0"
+                "Dlg5=$guid-SdFinishReboot-0"
+                "[$guid-SdWelcome-0]"
+                'Result=1'
+                "[$guid-SdLicense2Rtf-0]"
+                'Result=1'
+                "[$guid-SdAskDestPath-0]"
+                "szDir=$installDir"
+                'Result=1'
+                "[$guid-SdSelectFolder-0]"
+                'szFolder=Xshell 8'
+                'Result=1'
+                "[$guid-SdFinish-0]"
+                'Result=1'
+                'bOpt1=0'
+                'bOpt2=0'
+                "[$guid-SdFinishReboot-0]"
+                'Result=1'
+                'BootOption=0'
+              ) -join "`r`n"
+              Set-Content -LiteralPath $response -Value $responseText -Encoding ascii
               Invoke-WebRequest -Uri 'https://cdn.netsarang.net/v8/Xshell-latest-p' -OutFile $installer -TimeoutSec 180
+              Write-Host "Xshell 安装包版本：$((Get-Item -LiteralPath $installer).VersionInfo.ProductVersion)"
               $signature = Get-AuthenticodeSignature -LiteralPath $installer
               if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notlike 'CN="NetSarang Computer, Inc.",*') {
                 throw 'Xshell 安装包 NetSarang 签名校验失败'
               }
-              $process = Start-Process -FilePath $installer -ArgumentList "-s -f1`"$response`" -f2`"$setupLog`"" -WindowStyle Hidden -Wait -PassThru
+              $msiArguments = "/qn REBOOT=ReallySuppress /l*v \`"$msiLog\`""
+              $arguments = "-s -f1`"$response`" -f2`"$setupLog`" -v`"$msiArguments`""
+              $process = Start-Process -FilePath $installer -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
               if ($process.ExitCode -notin @(0, 3010)) { throw "Xshell 安装失败：$($process.ExitCode)" }
               if (-not (Test-Path -LiteralPath $setupLog) -or -not (Select-String -LiteralPath $setupLog -Pattern '^ResultCode=0$' -Quiet)) {
-                throw "Xshell 静默安装失败，请查看 $setupLog"
+                if (Test-Path -LiteralPath $setupLog) { Get-Content -LiteralPath $setupLog | Write-Host }
+                throw "Xshell 静默安装失败，请查看 $setupLog 和 $msiLog"
               }
-              $xshell = Join-Path ${env:ProgramFiles(x86)} 'NetSarang/Xshell 8/Xshell.exe'
+              $xshell = Join-Path $installDir 'Xshell.exe'
               if (-not (Test-Path -LiteralPath $xshell)) { throw 'Xshell 安装后未找到程序' }
               Write-Host 'Xshell 8 免费版静默安装完成'
             } catch { Write-Warning "Xshell 安装失败：$_" }
