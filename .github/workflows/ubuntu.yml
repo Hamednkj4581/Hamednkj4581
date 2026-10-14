@@ -19,6 +19,11 @@ on:
         required: false
         default: ''
         type: string
+      password:
+        description: 'NatLink 连接密码（6–64 个字符，连接端需填写相同密码）'
+        required: true
+        default: 'mynewpassword'
+        type: string
 
 run-name: '${{ inputs.os }} NatLink'
 
@@ -29,7 +34,7 @@ permissions:
 env:
   TZ: Asia/Shanghai
   NATLINK_NAME: '${{ github.repository }} / ${{ inputs.os }} / ${{ github.run_number }}'
-  NATLINK_PASSWORD: mynewpassword
+  NATLINK_PASSWORD: ${{ inputs.password }}
 
 jobs:
   job:
@@ -45,6 +50,10 @@ jobs:
           REMOTE_OS: ${{ inputs.os }}
         run: |
           set -euo pipefail
+          if (( ${#NATLINK_PASSWORD} < 6 || ${#NATLINK_PASSWORD} > 64 )) || [[ "$NATLINK_PASSWORD" =~ [[:cntrl:]] ]]; then
+            echo "::error::NatLink 连接密码必须为 6–64 个字符，且不能包含控制字符"
+            exit 1
+          fi
           NATLINK_CODE="$INPUT_CODE"
           if [ -z "$NATLINK_CODE" ]; then
             printf -v NATLINK_CODE '%03d%03d%03d' "$((100 + RANDOM % 900))" "$((RANDOM % 1000))" "$((RANDOM % 1000))"
@@ -70,6 +79,7 @@ jobs:
             echo "- 设备码：\`$NATLINK_CODE\`"
             echo "- 连接密码：\`$NATLINK_PASSWORD\`"
             echo "- 开放的本机 TCP 端口：\`$NATLINK_PORTS\`"
+            echo "连接端必须填写相同的 NatLink 连接密码，无人值守模式才会接受请求。"
             echo "在本机 NatLink 中连接上述设备码，使用连接后显示的本机映射端口访问服务。"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -111,7 +121,7 @@ jobs:
           # choco install vscode
           # echo "::endgroup::"
 
-          & "$env:GITHUB_WORKSPACE/natlink/natlink-cli-windows-x64.exe" --code "$env:NATLINK_CODE" --name "$env:NATLINK_NAME" --ports "$env:NATLINK_PORTS"
+          & "$env:GITHUB_WORKSPACE/natlink/natlink-cli-windows-x64.exe" --code "$env:NATLINK_CODE" --name "$env:NATLINK_NAME" --ports "$env:NATLINK_PORTS" --password "$env:NATLINK_PASSWORD"
 
       - name: 运行Linux
         if: ${{ runner.os == 'Linux' && inputs.os != 'android' }}
@@ -139,7 +149,7 @@ jobs:
             shadowsocks/shadowsocks-libev
 
           chmod +x natlink/natlink-cli-linux-x64
-          ./natlink/natlink-cli-linux-x64 --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS"
+          ./natlink/natlink-cli-linux-x64 --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS" --password "$NATLINK_PASSWORD"
 
       - name: 运行Android
         if: ${{ inputs.os == 'android' }}
@@ -225,7 +235,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           chmod +x natlink/natlink-cli-linux-x64
-          ./natlink/natlink-cli-linux-x64 --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS"
+          ./natlink/natlink-cli-linux-x64 --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS" --password "$NATLINK_PASSWORD"
 
       - name: 运行macOS
         if: ${{ runner.os == 'macOS' }}
@@ -696,4 +706,4 @@ jobs:
             *) echo "::error::不支持的 macOS 架构"; exit 1 ;;
           esac
           chmod +x "$NATLINK_BIN"
-          "$NATLINK_BIN" --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS"
+          "$NATLINK_BIN" --code "$NATLINK_CODE" --name "$NATLINK_NAME" --ports "$NATLINK_PORTS" --password "$NATLINK_PASSWORD"
